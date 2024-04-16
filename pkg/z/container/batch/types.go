@@ -13,6 +13,14 @@ type Batch struct {
 	Vecs     []*vector.Vector
 }
 
+func New(ro bool, attrs []string) *Batch {
+	return &Batch{
+		Ro:    ro,
+		Attrs: attrs,
+		Vecs:  make([]*vector.Vector, len(attrs)),
+	}
+}
+
 func (bat *Batch) Clean(proc *process.Process) {
 	if bat.SelsData != nil {
 		proc.Free(bat.SelsData)

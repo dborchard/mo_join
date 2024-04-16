@@ -7,14 +7,17 @@ import (
 )
 
 type Engine interface {
-	Relations() []Relation
-	Relation(string) (Relation, error)
-
-	Delete(string) error
 	Create(string, []metadata.Attribute) error
+	Relation(string) (Relation, error)
+	Delete(string) error
+}
+
+type Statistics interface {
+	Rows() int64
 }
 
 type Relation interface {
+	Statistics
 	ID() string
 
 	Segments() []string

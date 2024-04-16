@@ -3,6 +3,7 @@ package unittest
 import (
 	"log"
 	"mo_join/pkg/vm/engine"
+	"mo_join/pkg/vm/engine/memEngine"
 	"mo_join/pkg/vm/process"
 )
 

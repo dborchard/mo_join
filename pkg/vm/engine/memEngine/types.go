@@ -2,6 +2,7 @@ package memEngine
 
 import (
 	"mo_join/pkg/vm/engine/memEngine/kv"
+	"mo_join/pkg/vm/engine/memEngine/meta"
 	"mo_join/pkg/vm/process"
 )
 

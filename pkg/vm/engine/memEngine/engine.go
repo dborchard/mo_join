@@ -1,8 +1,10 @@
 package memEngine
 
 import (
+	"mo_join/pkg/encoding"
 	"mo_join/pkg/vm/engine"
 	"mo_join/pkg/vm/engine/memEngine/kv"
+	"mo_join/pkg/vm/engine/memEngine/meta"
 	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/vm/metadata"
 	"mo_join/pkg/vm/process"
@@ -11,23 +13,32 @@ import (
 func New(db *kv.KV) *memEngine {
 	return &memEngine{db, process.New(mempool.New(1<<32, 16))}
 }
+func (e *memEngine) Create(name string, attrs []metadata.Attribute) error {
+	var md meta.Metadata
 
-func (m *memEngine) Relations() []engine.Relation {
-	//TODO implement me
-	panic("implement me")
+	md.Name = name
+	md.Attrs = attrs
+	data, err := encoding.Encode(md)
+	if err != nil {
+		return err
+	}
+	return e.db.Set(name, data)
 }
 
-func (m *memEngine) Relation(s string) (engine.Relation, error) {
-	//TODO implement me
-	panic("implement me")
+func (e *memEngine) Relation(name string) (engine.Relation, error) {
+	var md meta.Metadata
+
+	data, err := e.db.Get(name, e.proc)
+	if err != nil {
+		return nil, err
+	}
+	defer e.proc.Free(data)
+	if err := encoding.Decode(data[mempool.CountSize:], &md); err != nil {
+		return nil, err
+	}
+	return &relation{name, e.db, md}, nil
 }
 
-func (m *memEngine) Delete(s string) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *memEngine) Create(s string, attributes []metadata.Attribute) error {
-	//TODO implement me
-	panic("implement me")
+func (e *memEngine) Delete(name string) error {
+	return e.db.Del(name)
 }
