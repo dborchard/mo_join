@@ -37,7 +37,7 @@ func (a *KV) Get(k string, proc *process.Process) ([]byte, error) {
 	if !ok {
 		return nil, NotExist
 	}
-	data, err := proc.Alloc(int64(len(v)))
+	data, err := proc.Alloc(int64(len(v)) + mempool.CountSize)
 	if err != nil {
 		return nil, err
 	}
