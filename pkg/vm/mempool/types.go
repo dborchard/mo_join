@@ -1,7 +1,7 @@
 package mempool
 
 const (
-	CountSize = 8
+	HeaderSize = 8
 )
 
 type Mempool struct {

@@ -46,6 +46,11 @@ func DecodeInt32(v []byte) int32 {
 	return *(*int32)(unsafe.Pointer(&v[0]))
 }
 
+func EncodeInt64(v int64) []byte {
+	hp := reflect.SliceHeader{Data: uintptr(unsafe.Pointer(&v)), Len: 8, Cap: 8}
+	return *(*[]byte)(unsafe.Pointer(&hp))
+}
+
 //-----------------------------------------------------------
 
 func EncodeUint32(v uint32) []byte {
@@ -95,6 +100,7 @@ func EncodeFloat64Slice(v []float64) []byte {
 	hp.Cap *= 8
 	return *(*[]byte)(unsafe.Pointer(&hp))
 }
+
 func DecodeFloat64Slice(v []byte) []float64 {
 	hp := *(*reflect.SliceHeader)(unsafe.Pointer(&v))
 	hp.Len /= 8

@@ -301,7 +301,7 @@ func (ctr *Container) product(start int, sels []int64, g *hash.BagGroup, bat *ba
 						if err := ctr.probeState.bat.Vecs[j].UnionOne(vec, sel, proc); err != nil {
 							return err
 						}
-						copy(ctr.probeState.bat.Vecs[j].Data[:mempool.CountSize], vec.Data[:mempool.CountSize])
+						copy(ctr.probeState.bat.Vecs[j].Data[:mempool.HeaderSize], vec.Data[:mempool.HeaderSize])
 					} else {
 						if err := ctr.probeState.bat.Vecs[j].UnionOne(vec, sel, proc); err != nil {
 							return err
@@ -316,7 +316,7 @@ func (ctr *Container) product(start int, sels []int64, g *hash.BagGroup, bat *ba
 						if err := ctr.probeState.bat.Vecs[k].UnionOne(vec, g.Sels[i], proc); err != nil {
 							return err
 						}
-						copy(ctr.probeState.bat.Vecs[k].Data[:mempool.CountSize], vec.Data[:mempool.CountSize])
+						copy(ctr.probeState.bat.Vecs[k].Data[:mempool.HeaderSize], vec.Data[:mempool.HeaderSize])
 					} else {
 						if err := ctr.probeState.bat.Vecs[k].UnionOne(vec, g.Sels[i], proc); err != nil {
 							return err

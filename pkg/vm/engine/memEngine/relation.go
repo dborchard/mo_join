@@ -2,12 +2,12 @@ package memEngine
 
 import (
 	"fmt"
-	"mo_join/pkg/encoding"
 	"mo_join/pkg/vm/engine"
 	"mo_join/pkg/vm/engine/memEngine/segment"
 	"mo_join/pkg/vm/metadata"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/batch"
+	"mo_join/pkg/z/encoding"
 )
 
 func (r *relation) ID() string {

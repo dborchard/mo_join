@@ -1,7 +1,6 @@
 package segment
 
 import (
-	"mo_join/pkg/encoding"
 	"mo_join/pkg/vm/engine/memEngine/kv"
 	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/vm/metadata"
@@ -9,6 +8,7 @@ import (
 	"mo_join/pkg/z/container/batch"
 	"mo_join/pkg/z/container/types"
 	"mo_join/pkg/z/container/vector"
+	"mo_join/pkg/z/encoding"
 )
 
 type Segment struct {

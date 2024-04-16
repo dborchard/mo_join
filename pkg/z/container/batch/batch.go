@@ -7,11 +7,10 @@ import (
 )
 
 type Batch struct {
-	Ro       bool
-	SelsData []byte
-	Sels     []int64
-	Attrs    []string
-	Vecs     []*vector.Vector
+	Ro    bool
+	Sels  []int64
+	Attrs []string
+	Vecs  []*vector.Vector
 }
 
 func New(ro bool, attrs []string) *Batch {
@@ -23,15 +22,12 @@ func New(ro bool, attrs []string) *Batch {
 }
 
 func (bat *Batch) Clean(proc *process.Process) {
-	if bat.SelsData != nil {
-		proc.Free(bat.SelsData)
-		bat.Sels = nil
-		bat.SelsData = nil
-	}
+	bat.Sels = nil
 	for _, vec := range bat.Vecs {
-		vec.Clean(proc)
+		vec.Free(proc)
 	}
 }
+
 func (bat *Batch) Cow() {
 	attrs := make([]string, len(bat.Attrs))
 	for i, attr := range bat.Attrs {
@@ -45,14 +41,24 @@ func (bat *Batch) Reorder(attrs []string) {
 	if bat.Ro {
 		bat.Cow()
 	}
+
+	attrIndex := make(map[string]int, len(bat.Attrs))
+	for i, attr := range bat.Attrs {
+		attrIndex[attr] = i
+	}
+
+	newVecs := make([]*vector.Vector, len(attrs))
+	newAttrs := make([]string, len(attrs))
+
 	for i, name := range attrs {
-		for j, attr := range bat.Attrs {
-			if name == attr {
-				bat.Vecs[i], bat.Vecs[j] = bat.Vecs[j], bat.Vecs[i]
-				bat.Attrs[i], bat.Attrs[j] = bat.Attrs[j], bat.Attrs[i]
-			}
+		if j, ok := attrIndex[name]; ok {
+			newVecs[i] = bat.Vecs[j]
+			newAttrs[i] = bat.Attrs[j]
 		}
 	}
+
+	bat.Vecs = newVecs
+	bat.Attrs = newAttrs
 }
 
 func (bat *Batch) Prefetch(attrs []string, vecs []*vector.Vector, proc *process.Process) error {

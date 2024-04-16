@@ -1,13 +1,13 @@
 package memEngine
 
 import (
-	"mo_join/pkg/encoding"
 	"mo_join/pkg/vm/engine"
 	"mo_join/pkg/vm/engine/memEngine/kv"
 	"mo_join/pkg/vm/engine/memEngine/meta"
 	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/vm/metadata"
 	"mo_join/pkg/vm/process"
+	"mo_join/pkg/z/encoding"
 )
 
 func New(db *kv.KV) *memEngine {
@@ -33,7 +33,7 @@ func (e *memEngine) Relation(name string) (engine.Relation, error) {
 		return nil, err
 	}
 	defer e.proc.Free(data)
-	if err := encoding.Decode(data[mempool.CountSize:], &md); err != nil {
+	if err := encoding.Decode(data[mempool.HeaderSize:], &md); err != nil {
 		return nil, err
 	}
 	return &relation{name, e.db, md}, nil

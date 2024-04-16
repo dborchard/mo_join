@@ -2,12 +2,12 @@ package hash
 
 import (
 	"bytes"
-	"mo_join/pkg/encoding"
 	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/batch"
 	"mo_join/pkg/z/container/types"
 	"mo_join/pkg/z/container/vector"
+	"mo_join/pkg/z/encoding"
 )
 
 type BagGroup struct {
@@ -223,17 +223,17 @@ func (g *BagGroup) Fill(sels, matched []int64, vecs []*vector.Vector,
 				return nil, err
 			}
 			if g.Idata != nil {
-				copy(iData[mempool.CountSize:], g.Idata[mempool.CountSize:])
+				copy(iData[mempool.HeaderSize:], g.Idata[mempool.HeaderSize:])
 				proc.Free(g.Idata)
 			}
 			if g.Sdata != nil {
-				copy(sData[mempool.CountSize:], g.Sdata[mempool.CountSize:])
+				copy(sData[mempool.HeaderSize:], g.Sdata[mempool.HeaderSize:])
 				proc.Free(g.Sdata)
 			}
-			g.Is = encoding.DecodeInt64Slice(iData[mempool.CountSize:])
+			g.Is = encoding.DecodeInt64Slice(iData[mempool.HeaderSize:])
 			g.Idata = iData
 			g.Is = g.Is[:length-len(matched)]
-			g.Sels = encoding.DecodeInt64Slice(sData[mempool.CountSize:])
+			g.Sels = encoding.DecodeInt64Slice(sData[mempool.HeaderSize:])
 			g.Sdata = sData
 			g.Sels = g.Sels[:length-len(matched)]
 		}

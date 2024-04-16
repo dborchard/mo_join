@@ -1,6 +1,8 @@
 package metadata
 
-import "mo_join/pkg/z/container/types"
+import (
+	"mo_join/pkg/z/container/types"
+)
 
 type Attribute struct {
 	Name string     // name of attribute

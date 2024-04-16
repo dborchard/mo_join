@@ -20,6 +20,7 @@ func (n *Nulls) Read(data []byte) error {
 	}
 	return nil
 }
+
 func (n *Nulls) Show() ([]byte, error) {
 	var buf bytes.Buffer
 
@@ -32,11 +33,12 @@ func (n *Nulls) Show() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (n *Nulls) Any() bool {
+func (n *Nulls) Add(rows ...uint64) {
 	if n.Np == nil {
-		return false
+		n.Np = roaring.NewBitmap(rows...)
+		return
 	}
-	return n.Np.Any()
+	n.Np.DirectAddN(rows...)
 }
 
 func (n *Nulls) Contains(row uint64) bool {
@@ -46,10 +48,9 @@ func (n *Nulls) Contains(row uint64) bool {
 	return false
 }
 
-func (n *Nulls) Add(rows ...uint64) {
+func (n *Nulls) Any() bool {
 	if n.Np == nil {
-		n.Np = roaring.NewBitmap(rows...)
-		return
+		return false
 	}
-	n.Np.DirectAddN(rows...)
+	return n.Np.Any()
 }
