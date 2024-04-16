@@ -84,3 +84,10 @@ func EncodeUint32Slice(v []uint32) []byte {
 	hp.Cap *= 4
 	return *(*[]byte)(unsafe.Pointer(&hp))
 }
+
+func DecodeInt64Slice(v []byte) []int64 {
+	hp := *(*reflect.SliceHeader)(unsafe.Pointer(&v))
+	hp.Len /= 8
+	hp.Cap /= 8
+	return *(*[]int64)(unsafe.Pointer(&hp))
+}

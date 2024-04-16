@@ -17,3 +17,20 @@ func New() *Map {
 	}
 	return &Map{Ks: ks, Vs: vs}
 }
+
+func (m *Map) Get(k uint64) (int, bool) {
+	slot := k & GroupMask
+	j := len(m.Ks[slot]) / Width
+	for i := j * Width; i < len(m.Ks[slot]); i++ {
+		if m.Ks[slot][i] == k {
+			return m.Vs[slot][i], true
+		}
+	}
+	return -1, false
+}
+func (m *Map) Set(k uint64, v int) {
+	slot := k & GroupMask
+	m.Vs[slot] = append(m.Vs[slot], v)
+	m.Ks[slot] = append(m.Ks[slot], k)
+	return
+}

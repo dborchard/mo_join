@@ -22,3 +22,8 @@ func (a *Bytes) Reset() {
 	a.Lengths = a.Lengths[:0]
 	a.Data = a.Data[:0]
 }
+
+func (a *Bytes) Get(n int) []byte {
+	offset := a.Offsets[n]
+	return a.Data[offset : offset+a.Lengths[n]]
+}

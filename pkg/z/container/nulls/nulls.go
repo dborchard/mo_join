@@ -31,3 +31,25 @@ func (n *Nulls) Show() ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
+func (n *Nulls) Any() bool {
+	if n.Np == nil {
+		return false
+	}
+	return n.Np.Any()
+}
+
+func (n *Nulls) Contains(row uint64) bool {
+	if n.Np != nil {
+		return n.Np.Contains(row)
+	}
+	return false
+}
+
+func (n *Nulls) Add(rows ...uint64) {
+	if n.Np == nil {
+		n.Np = roaring.NewBitmap(rows...)
+		return
+	}
+	n.Np.DirectAddN(rows...)
+}

@@ -26,8 +26,6 @@ func Call(proc *process.Process, arg interface{}) (bool, error) {
 	}
 	reg.Wg.Add(1)
 	reg.Ch <- proc.Reg.Ax
-	n.Mmu.Alloc(proc.Size())
-	proc.Gm.Free(proc.Size())
 	reg.Wg.Wait()
 	return false, nil
 }
