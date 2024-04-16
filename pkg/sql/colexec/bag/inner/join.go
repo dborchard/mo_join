@@ -97,7 +97,7 @@ func (ctr *Container) probe(rName, sName string, attrs []string, proc *process.P
 		v := <-reg.Ch
 		if v == nil {
 			reg.Wg.Done()
-			proc.Reg.Ax = nil
+			proc.Reg.BatchRead = nil
 			ctr.clean(nil, proc)
 			return true, nil
 		}
@@ -109,7 +109,7 @@ func (ctr *Container) probe(rName, sName string, attrs []string, proc *process.P
 		if len(ctr.groups) == 0 {
 			reg.Ch = nil
 			reg.Wg.Done()
-			proc.Reg.Ax = nil
+			proc.Reg.BatchRead = nil
 			ctr.clean(bat, proc)
 			return true, nil
 		}
@@ -155,7 +155,7 @@ func (ctr *Container) probe(rName, sName string, attrs []string, proc *process.P
 		}
 		reg.Wg.Done()
 		bat.Clean(proc)
-		proc.Reg.Ax = ctr.probeState.bat
+		proc.Reg.BatchRead = ctr.probeState.bat
 		ctr.probeState.bat = nil
 		return false, nil
 	}

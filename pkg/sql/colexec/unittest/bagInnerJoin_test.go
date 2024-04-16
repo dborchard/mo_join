@@ -8,7 +8,6 @@ import (
 	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/vm/pipeline"
 	"mo_join/pkg/vm/process"
-
 	"sync"
 	"testing"
 )
@@ -70,7 +69,7 @@ func TestBagInnerJoin(t *testing.T) {
 	}
 	p := pipeline.NewMerge(ins)
 	fmt.Printf("%s\n", p)
-	p.RunMerge(proc)
+	_, _ = p.RunMerge(proc)
 	fmt.Printf("guest: %v\n", proc.Size())
 	wg.Wait()
 	fmt.Printf("************\n")

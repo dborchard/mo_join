@@ -11,8 +11,7 @@ type WaitRegister struct {
 }
 
 type Register struct {
-	Ax            interface{}
-	Ts            []interface{}
+	BatchRead     interface{}
 	WaitRegisters []*WaitRegister
 }
 

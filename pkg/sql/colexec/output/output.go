@@ -16,8 +16,8 @@ func Prepare(_ *process.Process, _ interface{}) error {
 }
 
 func Call(proc *process.Process, arg interface{}) (bool, error) {
-	if proc.Reg.Ax != nil {
-		bat := proc.Reg.Ax.(*batch.Batch)
+	if proc.Reg.BatchRead != nil {
+		bat := proc.Reg.BatchRead.(*batch.Batch)
 		fmt.Printf("%s\n", bat)
 		bat.Clean(proc)
 	}
