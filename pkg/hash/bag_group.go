@@ -26,17 +26,6 @@ func NewBagGroup(idx, sel int64) *BagGroup {
 	}
 }
 
-func (g *BagGroup) Free(proc *process.Process) {
-	if g.Idata != nil {
-		proc.Free(g.Idata)
-		g.Idata = nil
-	}
-	if g.Sdata != nil {
-		proc.Free(g.Sdata)
-		g.Sdata = nil
-	}
-}
-
 func (g *BagGroup) Probe(sels, matched []int64, vecs []*vector.Vector,
 	bats []*batch.Batch, diffs []bool, proc *process.Process) ([]int64, []int64, error) {
 	for i, vec := range vecs {
@@ -243,4 +232,15 @@ func (g *BagGroup) Fill(sels, matched []int64, vecs []*vector.Vector,
 		}
 	}
 	return remaining, nil
+}
+
+func (g *BagGroup) Free(proc *process.Process) {
+	if g.Idata != nil {
+		proc.Free(g.Idata)
+		g.Idata = nil
+	}
+	if g.Sdata != nil {
+		proc.Free(g.Sdata)
+		g.Sdata = nil
+	}
 }

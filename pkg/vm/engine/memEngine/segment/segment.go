@@ -8,7 +8,6 @@ import (
 	"mo_join/pkg/z/container/batch"
 	"mo_join/pkg/z/container/types"
 	"mo_join/pkg/z/container/vector"
-	"mo_join/pkg/z/encoding"
 )
 
 type Segment struct {
@@ -43,7 +42,7 @@ func (s *Segment) Read(cs []uint64, attrs []string, proc *process.Process) (*bat
 			return nil, err
 		}
 		//TODO: later replace this code
-		copy(vec.Data, encoding.EncodeUint64(cs[i]))
+		//copy(vec.Data, encoding.EncodeUint64(cs[i]))
 		bat.Vecs[i] = vec
 	}
 	return bat, nil
