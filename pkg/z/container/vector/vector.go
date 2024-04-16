@@ -192,12 +192,12 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 		v.Col = append(oldData, newData[sel])
 
 	case types.T_varchar:
-		newData := w.Col.(*types.Bytes)
-		from := newData.Data[newData.Offsets[sel] : newData.Offsets[sel]+newData.Lengths[sel]]
-		oldData := v.Col.(*types.Bytes)
+		vs := w.Col.(*types.Bytes)
+		from := vs.Data[vs.Offsets[sel] : vs.Offsets[sel]+vs.Lengths[sel]]
+		col := v.Col.(*types.Bytes)
 		{
-			if v.Data == nil || cap(v.Data[mempool.HeaderSize:]) < len(oldData.Data)+len(from) {
-				data, err := proc.Alloc(int64(len(oldData.Data) + len(from)))
+			if v.Data == nil || cap(v.Data[mempool.CountSize:]) < len(col.Data)+len(from) {
+				data, err := proc.Alloc(int64(len(col.Data) + len(from)))
 				if err != nil {
 					return err
 				}
@@ -205,23 +205,23 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 					copy(data, v.Data)
 					proc.Free(v.Data)
 				} else {
-					copy(data[:mempool.HeaderSize], w.Data[:mempool.HeaderSize])
+					copy(data[:mempool.CountSize], w.Data[:mempool.CountSize])
 				}
-				data = data[:mempool.HeaderSize+len(oldData.Data)]
+				data = data[:mempool.CountSize+len(col.Data)]
 				v.Data = data
-				oldData.Data = data[mempool.HeaderSize:]
+				col.Data = data[mempool.CountSize:]
 			}
 		}
-		oldData.Lengths = append(oldData.Lengths, uint32(len(from)))
+		col.Lengths = append(col.Lengths, uint32(len(from)))
 		{
-			n := len(oldData.Offsets)
+			n := len(col.Offsets)
 			if n > 0 {
-				oldData.Offsets = append(oldData.Offsets, oldData.Offsets[n-1]+oldData.Lengths[n-1])
+				col.Offsets = append(col.Offsets, col.Offsets[n-1]+col.Lengths[n-1])
 			} else {
-				oldData.Offsets = append(oldData.Offsets, 0)
+				col.Offsets = append(col.Offsets, 0)
 			}
 		}
-		oldData.Data = append(oldData.Data, from...)
+		col.Data = append(col.Data, from...)
 	}
 	if w.Nsp.Any() && w.Nsp.Contains(uint64(sel)) {
 		v.Nsp.Add(uint64(v.Length()))
