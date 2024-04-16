@@ -1,6 +1,9 @@
 package vm
 
-import "bytes"
+import (
+	"bytes"
+	"mo_join/pkg/vm/process"
+)
 
 func Prepare(ins Instructions, proc *process.Process) error {
 	for _, in := range ins {
