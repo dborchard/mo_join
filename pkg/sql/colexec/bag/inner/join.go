@@ -3,6 +3,7 @@ package inner
 import (
 	"bytes"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"mo_join/pkg/hash"
 	"mo_join/pkg/intmap/fastmap"
 	"mo_join/pkg/vm/mempool"
@@ -57,6 +58,7 @@ func (ctr *Container) build(attrs []string, proc *process.Process) error {
 	reg := proc.Reg.WaitRegisters[1]
 	for {
 		v := <-reg.Ch
+		log.Info("join v: ", v)
 		if v == nil {
 			reg.Wg.Done()
 			break

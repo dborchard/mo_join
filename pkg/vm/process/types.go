@@ -16,9 +16,8 @@ type Register struct {
 }
 
 type Process struct {
-	Reg   Register
-	Mp    *mempool.Mempool
-	Refer map[string]uint64
+	Reg Register
+	Mp  *mempool.Mempool
 }
 
 func (p *Process) Alloc(size int64) ([]byte, error) {

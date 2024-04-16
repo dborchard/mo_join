@@ -43,6 +43,7 @@ func (s *Segment) Read(cs []uint64, attrs []string, proc *process.Process) (*bat
 			}
 			return nil, err
 		}
+		//TODO: later replace this code
 		copy(vec.Data, encoding.EncodeUint64(cs[i]))
 		bat.Vecs[i] = vec
 	}
