@@ -1,6 +1,10 @@
-package join
+package inner
 
-import "mo_join/pkg/z/container/batch"
+import (
+	"mo_join/pkg/hash"
+	"mo_join/pkg/intmap/fastmap"
+	"mo_join/pkg/z/container/batch"
+)
 
 const (
 	UnitLimit = 1024

@@ -1,8 +1,11 @@
-package join
+package inner
 
 import (
 	"bytes"
 	"fmt"
+	"mo_join/pkg/hash"
+	"mo_join/pkg/intmap/fastmap"
+	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/batch"
 	"mo_join/pkg/z/container/vector"
