@@ -1,6 +1,7 @@
 package batch
 
 import (
+	"bytes"
 	"fmt"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/vector"
@@ -85,4 +86,17 @@ func (bat *Batch) GetVector(name string, proc *process.Process) (*vector.Vector,
 		return bat.Vecs[i], nil
 	}
 	return nil, fmt.Errorf("attribute '%s' not exist", name)
+}
+
+func (bat *Batch) String() string {
+	var buf bytes.Buffer
+
+	if len(bat.Sels) > 0 {
+		fmt.Printf("%v\n", bat.Sels)
+	}
+	for i, attr := range bat.Attrs {
+		buf.WriteString(fmt.Sprintf("%s\n", attr))
+		buf.WriteString(fmt.Sprintf("\t%s\n", bat.Vecs[i]))
+	}
+	return buf.String()
 }
