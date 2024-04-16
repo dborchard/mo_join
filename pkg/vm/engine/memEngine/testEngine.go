@@ -3,7 +3,6 @@ package memEngine
 import (
 	"fmt"
 	"log"
-	"mo_join/pkg/compress"
 	"mo_join/pkg/vm/engine"
 	"mo_join/pkg/vm/engine/memEngine/kv"
 	"mo_join/pkg/vm/metadata"
@@ -25,17 +24,14 @@ func CreateR(e engine.Engine) {
 
 		{
 			attrs = append(attrs, metadata.Attribute{
-				Alg:  compress.Lz4,
 				Name: "orderId",
 				Type: types.Type{types.T(types.T_varchar), 24, 0, 0},
 			})
 			attrs = append(attrs, metadata.Attribute{
-				Alg:  compress.Lz4,
 				Name: "uid",
 				Type: types.Type{types.T(types.T_varchar), 24, 0, 0},
 			})
 			attrs = append(attrs, metadata.Attribute{
-				Alg:  compress.Lz4,
 				Name: "price",
 				Type: types.Type{types.T(types.T_float64), 8, 8, 0},
 			})
@@ -136,19 +132,16 @@ func CreateS(e engine.Engine) {
 
 		{
 			attrs = append(attrs, metadata.Attribute{
-				Alg:  compress.Lz4,
 				Name: "orderId",
-				Type: types.Type{types.T(types.T_varchar), 24, 0, 0},
+				Type: types.Type{Oid: types.T(types.T_varchar), Size: 24},
 			})
 			attrs = append(attrs, metadata.Attribute{
-				Alg:  compress.Lz4,
 				Name: "uid",
-				Type: types.Type{types.T(types.T_varchar), 24, 0, 0},
+				Type: types.Type{Oid: types.T(types.T_varchar), Size: 24},
 			})
 			attrs = append(attrs, metadata.Attribute{
-				Alg:  compress.Lz4,
 				Name: "price",
-				Type: types.Type{types.T(types.T_float64), 8, 8, 0},
+				Type: types.Type{Oid: types.T(types.T_float64), Size: 8, Width: 8},
 			})
 		}
 		if err := e.Create("S", attrs); err != nil {
@@ -163,7 +156,7 @@ func CreateS(e engine.Engine) {
 		bat := batch.New(true, []string{"orderId", "uid", "price"})
 		{
 			{
-				vec := vector.New(types.Type{types.T(types.T_varchar), 24, 0, 0})
+				vec := vector.New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
 				vs := make([][]byte, 10)
 				for i := 0; i < 10; i++ {
 					vs[i] = []byte(fmt.Sprintf("%v", i*2))
@@ -174,7 +167,7 @@ func CreateS(e engine.Engine) {
 				bat.Vecs[0] = vec
 			}
 			{
-				vec := vector.New(types.Type{types.T(types.T_varchar), 24, 0, 0})
+				vec := vector.New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
 				vs := make([][]byte, 10)
 				for i := 0; i < 10; i++ {
 					vs[i] = []byte(fmt.Sprintf("%v", i%2))
@@ -185,7 +178,7 @@ func CreateS(e engine.Engine) {
 				bat.Vecs[1] = vec
 			}
 			{
-				vec := vector.New(types.Type{types.T(types.T_float64), 8, 8, 0})
+				vec := vector.New(types.Type{Oid: types.T(types.T_float64), Size: 8, Width: 8})
 				vs := make([]float64, 10)
 				for i := 0; i < 10; i++ {
 					vs[i] = float64(i)
@@ -203,7 +196,7 @@ func CreateS(e engine.Engine) {
 	{
 		bat := batch.New(true, []string{"orderId", "uid", "price"})
 		{
-			vec := vector.New(types.Type{types.T(types.T_varchar), 24, 0, 0})
+			vec := vector.New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
 			vs := make([][]byte, 10)
 			for i := 10; i < 20; i++ {
 				vs[i-10] = []byte(fmt.Sprintf("%v", i*2))
@@ -214,7 +207,7 @@ func CreateS(e engine.Engine) {
 			bat.Vecs[0] = vec
 		}
 		{
-			vec := vector.New(types.Type{types.T(types.T_varchar), 24, 0, 0})
+			vec := vector.New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
 			vs := make([][]byte, 10)
 			for i := 10; i < 20; i++ {
 				vs[i-10] = []byte(fmt.Sprintf("%v", i%2))
@@ -225,7 +218,7 @@ func CreateS(e engine.Engine) {
 			bat.Vecs[1] = vec
 		}
 		{
-			vec := vector.New(types.Type{types.T(types.T_float64), 8, 8, 0})
+			vec := vector.New(types.Type{Oid: types.T(types.T_float64), Size: 8, Width: 8})
 			vs := make([]float64, 10)
 			for i := 10; i < 20; i++ {
 				vs[i-10] = float64(i)

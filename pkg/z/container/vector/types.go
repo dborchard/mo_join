@@ -210,7 +210,7 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 		col := v.Col.(*types.Bytes)
 		{
 			if v.Data == nil || cap(v.Data[mempool.CountSize:]) < len(col.Data)+len(from) {
-				data, err := proc.Alloc(int64((len(col.Data) + len(from))))
+				data, err := proc.Alloc(int64(len(col.Data) + len(from)))
 				if err != nil {
 					return err
 				}

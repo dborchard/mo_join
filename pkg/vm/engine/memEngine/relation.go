@@ -2,8 +2,6 @@ package memEngine
 
 import (
 	"fmt"
-	"github.com/pierrec/lz4"
-	"mo_join/pkg/compress"
 	"mo_join/pkg/encoding"
 	"mo_join/pkg/vm/engine"
 	"mo_join/pkg/vm/engine/memEngine/segment"
@@ -43,14 +41,7 @@ func (r *relation) Write(bat *batch.Batch) error {
 		if err != nil {
 			return err
 		}
-		if r.md.Attrs[i].Alg == compress.Lz4 {
-			data := make([]byte, lz4.CompressBlockBound(len(v)))
-			if data, err = compress.Compress(v, data, compress.Lz4); err != nil {
-				return err
-			}
-			data = append(data, encoding.EncodeInt32(int32(len(v)))...)
-			v = data
-		}
+
 		if err := r.db.Set(key+"."+attr, v); err != nil {
 			return err
 		}
