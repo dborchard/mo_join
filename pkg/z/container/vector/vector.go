@@ -149,7 +149,7 @@ func (v *Vector) Show() ([]byte, error) {
 		buf.Write(Col.Data)
 		return buf.Bytes(), nil
 	default:
-		return nil, fmt.Errorf("unsupport encoding type %s", v.Typ.Oid)
+		return nil, fmt.Errorf("unsupport encoding type %v", v.Typ.Oid)
 	}
 }
 
@@ -255,4 +255,31 @@ func (v *Vector) Copy(w *Vector, vi, wi int64, proc *process.Process) error {
 		vs.Offsets[i] += diff
 	}
 	return nil
+}
+
+func (v *Vector) String() string {
+	switch v.Typ.Oid {
+
+	case types.T_float64:
+		col := v.Col.([]float64)
+		if len(col) == 1 {
+			if v.Nsp.Contains(0) {
+				fmt.Print("null")
+			} else {
+				return fmt.Sprintf("%v", col[0])
+			}
+		}
+
+	case types.T_varchar:
+		col := v.Col.(*types.Bytes)
+		if len(col.Offsets) == 1 {
+			if v.Nsp.Contains(0) {
+				fmt.Print("null")
+			} else {
+				return fmt.Sprintf("%s", col.Data[:col.Lengths[0]])
+			}
+		}
+
+	}
+	return fmt.Sprintf("%v-%s", v.Col, v.Nsp)
 }

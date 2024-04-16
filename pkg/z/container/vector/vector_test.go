@@ -12,35 +12,41 @@ import (
 )
 
 func TestVector(t *testing.T) {
-	v := New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
-	w := New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
+	oldVec := New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
+	newVec := New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
 	{
 		vs := make([][]byte, 10)
 		for i := 0; i < 10; i++ {
 			vs[i] = []byte(fmt.Sprintf("%v", i*i))
 		}
 		vs[9] = []byte("abcd")
-		if err := v.Append(vs); err != nil {
+		if err := oldVec.Append(vs); err != nil {
 			log.Fatal(err)
 		}
-		v.Data = encoding.EncodeInt64(1)
+		oldVec.Data = encoding.EncodeInt64(1)
 	}
+
+	{
+		fmt.Printf("v: %v\n", oldVec)
+		fmt.Printf("w: %v\n", newVec)
+	}
+
 	proc := process.New(mempool.New(1<<32, 8))
 	for i := 0; i < 5; i++ {
-		if err := w.UnionOne(v, int64(i), proc); err != nil {
+		if err := newVec.UnionOne(oldVec, int64(i), proc); err != nil {
 			log.Fatal(err)
 		}
 	}
 	{
-		fmt.Printf("v: %v\n", v)
-		fmt.Printf("w: %v\n", w)
+		fmt.Printf("v: %v\n", oldVec)
+		fmt.Printf("w: %v\n", newVec)
 	}
 	{
-		if err := w.Copy(v, 1, 9, proc); err != nil {
+		if err := newVec.Copy(oldVec, 1, 9, proc); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("w[0] = v[6]: %v\n", w)
+		fmt.Printf("w[0] = v[6]: %v\n", newVec)
 	}
-	w.Free(proc)
+	newVec.Free(proc)
 	fmt.Printf("guest: %v\n", proc.Size())
 }

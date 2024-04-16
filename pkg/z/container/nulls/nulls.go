@@ -2,6 +2,7 @@ package nulls
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/pilosa/pilosa/roaring"
 )
 
@@ -53,4 +54,11 @@ func (n *Nulls) Any() bool {
 		return false
 	}
 	return n.Np.Any()
+}
+
+func (n *Nulls) String() string {
+	if n.Np == nil {
+		return "[]"
+	}
+	return fmt.Sprintf("%v", n.Np.Slice())
 }
