@@ -54,7 +54,7 @@ func Call(proc *process.Process, arg interface{}) (bool, error) {
 func (ctr *Container) build(attrs []string, proc *process.Process) error {
 	var err error
 
-	reg := proc.Reg.Ws[1]
+	reg := proc.Reg.WaitRegisters[1]
 	for {
 		v := <-reg.Ch
 		if v == nil {
@@ -93,7 +93,7 @@ func (ctr *Container) build(attrs []string, proc *process.Process) error {
 
 func (ctr *Container) probe(rName, sName string, attrs []string, proc *process.Process) (bool, error) {
 	for {
-		reg := proc.Reg.Ws[0]
+		reg := proc.Reg.WaitRegisters[0]
 		v := <-reg.Ch
 		if v == nil {
 			reg.Wg.Done()

@@ -17,50 +17,50 @@ func TestBagInnerJoin(t *testing.T) {
 	var wg sync.WaitGroup
 	var ins vm.Instructions
 
-	hm := host.New(1 << 20)
-	gm := guest.New(1<<20, hm)
-	proc := process.New(gm, mempool.New(1<<32, 8))
+	proc := process.New(mempool.New(1<<32, 8))
 	{
 		proc.Refer = make(map[string]uint64)
-		proc.Reg.Ws = make([]*process.WaitRegister, 2)
+
+		proc.Reg.WaitRegisters = make([]*process.WaitRegister, 2)
 		for i := 0; i < 2; i++ {
-			proc.Reg.Ws[i] = &process.WaitRegister{
+			proc.Reg.WaitRegisters[i] = &process.WaitRegister{
 				Wg: new(sync.WaitGroup),
 				Ch: make(chan interface{}),
 			}
 		}
 	}
+	// R table
 	{
-		var rins vm.Instructions
+		var rInstructions vm.Instructions
 
-		rproc := process.New(guest.New(1<<20, hm), mempool.New(1<<32, 8))
+		rProcess := process.New(mempool.New(1<<32, 8))
 		{
-			rproc.Refer = make(map[string]uint64)
+			rProcess.Refer = make(map[string]uint64)
 		}
-		rins = append(rins, vm.Instruction{Op: vm.Transfer, Arg: &transfer.Argument{Mmu: gm, Reg: proc.Reg.Ws[0]}})
-		rp := pipeline.New([]uint64{1, 1, 1}, []string{"orderId", "uid", "price"}, rins)
+		rInstructions = append(rInstructions, vm.Instruction{Op: vm.Transfer, Arg: &transfer.Argument{Reg: proc.Reg.WaitRegisters[0]}})
+		rp := pipeline.New([]uint64{1, 1, 1}, []string{"orderId", "uid", "price"}, rInstructions)
 		wg.Add(1)
 		go func() {
 			fmt.Printf("R: %s\n", rp)
-			rp.Run(segments("R", rproc), rproc)
-			fmt.Printf("R - guest: %v, host: %v\n", rproc.Size(), rproc.HostSize())
+			rp.Run(segments("R", rProcess), rProcess)
+			fmt.Printf("R - guest: %v\n", rProcess.Size())
 			wg.Done()
 		}()
 	}
 	{
 		var sins vm.Instructions
 
-		sproc := process.New(guest.New(1<<20, hm), mempool.New(1<<32, 8))
+		sproc := process.New(mempool.New(1<<32, 8))
 		{
 			sproc.Refer = make(map[string]uint64)
 		}
-		sins = append(sins, vm.Instruction{Op: vm.Transfer, Arg: &transfer.Argument{Mmu: gm, Reg: proc.Reg.Ws[1]}})
+		sins = append(sins, vm.Instruction{Op: vm.Transfer, Arg: &transfer.Argument{Reg: proc.Reg.WaitRegisters[1]}})
 		sp := pipeline.New([]uint64{1, 1, 1}, []string{"uid", "price", "orderId"}, sins)
 		wg.Add(1)
 		go func() {
 			fmt.Printf("S: %s\n", sp)
 			sp.Run(segments("S", sproc)[:1], sproc)
-			fmt.Printf("S - guest: %v, host: %v\n", sproc.Size(), sproc.HostSize())
+			fmt.Printf("S - guest: %v\n", sproc.Size())
 			wg.Done()
 		}()
 	}
@@ -71,7 +71,7 @@ func TestBagInnerJoin(t *testing.T) {
 	p := pipeline.NewMerge(ins)
 	fmt.Printf("%s\n", p)
 	p.RunMerge(proc)
-	fmt.Printf("guest: %v, host: %v\n", proc.Size(), proc.HostSize())
+	fmt.Printf("guest: %v\n", proc.Size())
 	wg.Wait()
 	fmt.Printf("************\n")
 }
