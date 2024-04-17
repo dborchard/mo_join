@@ -1,6 +1,8 @@
 package mempool
 
 const (
+	// HeaderSize is used for storing the Header Information on mpool allocated
+	// byte[].
 	HeaderSize = 8
 )
 
