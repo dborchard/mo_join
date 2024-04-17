@@ -2,7 +2,6 @@ package inner
 
 import (
 	"mo_join/pkg/hash"
-	"mo_join/pkg/intmap/fastmap"
 	"mo_join/pkg/z/container/batch"
 )
 
@@ -21,7 +20,7 @@ type Container struct {
 	builded bool
 	hashs   []uint64
 	sels    [][]int64                   // sels
-	slots   *fastmap.Map                // hash code -> sels index
+	slots   map[uint64]int              // hash code -> sels index
 	groups  map[uint64][]*hash.BagGroup // hash code -> group list
 	diffs   []bool
 	matchs  []int64

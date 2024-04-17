@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"mo_join/pkg/hash"
-	"mo_join/pkg/intmap/fastmap"
 	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/batch"
@@ -33,7 +32,7 @@ func Prepare(proc *process.Process, arg interface{}) error {
 		hashs:   make([]uint64, UnitLimit),
 		sels:    make([][]int64, UnitLimit),
 		groups:  make(map[uint64][]*hash.BagGroup),
-		slots:   fastmap.Pool.Get().(*fastmap.Map),
+		slots:   make(map[uint64]int),
 	}
 	return nil
 }
@@ -207,31 +206,30 @@ func (container *Container) buildUnit(
 	}
 
 	copy(container.diffs[:count], ZeroBools[:count])
-	for i, hs := range container.slots.Ks {
-		for j, h := range hs {
-			remaining := container.sels[container.slots.Vs[i][j]]
-			if gs, ok := container.groups[h]; ok {
-				for _, g := range gs {
-					if remaining, err = g.Fill(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
-						return err
-					}
-					copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
-				}
-			} else {
-				container.groups[h] = make([]*hash.BagGroup, 0, 8)
-			}
-			for len(remaining) > 0 {
-				g := hash.NewBagGroup(int64(len(container.bats)-1), int64(remaining[0]))
-				container.groups[h] = append(container.groups[h], g)
+	for key, val := range container.slots {
+		remaining := container.sels[val]
+		if gs, ok := container.groups[key]; ok {
+			for _, g := range gs {
 				if remaining, err = g.Fill(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
 					return err
 				}
 				copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
 			}
-			container.sels[container.slots.Vs[i][j]] = container.sels[container.slots.Vs[i][j]][:0]
+		} else {
+			container.groups[key] = make([]*hash.BagGroup, 0, 8)
 		}
+		for len(remaining) > 0 {
+			g := hash.NewBagGroup(int64(len(container.bats)-1), int64(remaining[0]))
+			container.groups[key] = append(container.groups[key], g)
+			if remaining, err = g.Fill(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
+				return err
+			}
+			copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
+		}
+		container.sels[val] = container.sels[val][:0]
+
 	}
-	container.slots.Reset()
+	container.slots = make(map[uint64]int)
 	return nil
 }
 
@@ -279,27 +277,27 @@ func (container *Container) probeUnit(start, count int, sels []int64, bat *batch
 
 	// Fill diff
 	copy(container.diffs[:count], ZeroBools[:count])
-	for i, hs := range container.slots.Ks {
-		for j, h := range hs {
-			remaining := container.sels[container.slots.Vs[i][j]]
-			if gs, ok := container.groups[h]; ok {
-				for k := 0; k < len(gs); k++ {
-					g := gs[k]
-					if matchs, remaining, err = g.Probe(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
+	for key, val := range container.slots {
+
+		remaining := container.sels[val]
+		if gs, ok := container.groups[key]; ok {
+			for k := 0; k < len(gs); k++ {
+				g := gs[k]
+				if matchs, remaining, err = g.Probe(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
+					return err
+				}
+				if len(matchs) > 0 {
+					if err := container.product(len(vecs), matchs, g, bat, proc); err != nil {
 						return err
 					}
-					if len(matchs) > 0 {
-						if err := container.product(len(vecs), matchs, g, bat, proc); err != nil {
-							return err
-						}
-					}
-					copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
 				}
+				copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
 			}
-			container.sels[container.slots.Vs[i][j]] = container.sels[container.slots.Vs[i][j]][:0]
 		}
+		container.sels[val] = container.sels[val][:0]
+
 	}
-	container.slots.Reset()
+	container.slots = make(map[uint64]int)
 	return nil
 }
 
@@ -348,10 +346,10 @@ func (container *Container) fillHash(start, count int, vecs []*vector.Vector) {
 	}
 	nextslot := 0
 	for i, h := range container.hashs {
-		slot, ok := container.slots.Get(h)
+		slot, ok := container.slots[h]
 		if !ok {
 			slot = nextslot
-			container.slots.Set(h, slot)
+			container.slots[h] = slot
 			nextslot++
 		}
 		container.sels[slot] = append(container.sels[slot], int64(i+start))
@@ -374,10 +372,10 @@ func (container *Container) fillHashSels(count int, sels []int64, vecs []*vector
 	}
 	nextslot := 0
 	for i, h := range container.hashs {
-		slot, ok := container.slots.Get(h)
+		slot, ok := container.slots[h]
 		if !ok {
 			slot = nextslot
-			container.slots.Set(h, slot)
+			container.slots[h] = slot
 			nextslot++
 		}
 		container.sels[slot] = append(container.sels[slot], sels[i])
@@ -388,7 +386,7 @@ func (container *Container) clean(bat *batch.Batch, proc *process.Process) {
 	if bat != nil {
 		bat.Clean(proc)
 	}
-	fastmap.Pool.Put(container.slots)
+
 	if container.probeState.bat != nil {
 		container.probeState.bat.Clean(proc)
 	}
