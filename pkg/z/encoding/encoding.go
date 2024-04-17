@@ -14,10 +14,10 @@ func init() {
 	TypeSize = int(unsafe.Sizeof(types.Type{}))
 }
 
-func EncodeType(v types.Type) []byte {
-	hp := reflect.SliceHeader{Data: uintptr(unsafe.Pointer(&v)), Len: TypeSize, Cap: TypeSize}
-	return *(*[]byte)(unsafe.Pointer(&hp))
+func EncodeType(v *types.Type) []byte {
+	return unsafe.Slice((*byte)(unsafe.Pointer(v)), TypeSize)
 }
+
 func DecodeType(v []byte) types.Type {
 	return *(*types.Type)(unsafe.Pointer(&v[0]))
 }

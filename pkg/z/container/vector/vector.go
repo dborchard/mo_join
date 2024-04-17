@@ -117,7 +117,7 @@ func (v *Vector) Show() ([]byte, error) {
 	switch v.Typ.Oid {
 
 	case types.TFloat64:
-		buf.Write(encoding.EncodeType(v.Typ))
+		buf.Write(encoding.EncodeType(&v.Typ))
 		nb, err := v.Nsp.Show()
 		if err != nil {
 			return nil, err
@@ -130,7 +130,7 @@ func (v *Vector) Show() ([]byte, error) {
 		return buf.Bytes(), nil
 
 	case types.TVarchar:
-		buf.Write(encoding.EncodeType(v.Typ))
+		buf.Write(encoding.EncodeType(&v.Typ))
 		nb, err := v.Nsp.Show()
 		if err != nil {
 			return nil, err
