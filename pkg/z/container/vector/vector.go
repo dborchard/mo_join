@@ -15,6 +15,7 @@ func New(typ types.Type) *Vector {
 		return &Vector{
 			Typ: typ,
 			Col: []int8{},
+			Nsp: &nulls.Nulls{},
 		}
 	}
 	return nil

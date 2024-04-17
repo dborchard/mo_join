@@ -49,7 +49,7 @@ var (
 
 func init() {
 	tcs = []joinTestCase{
-		newTestCase(mheap.New(), []bool{false}, []types.Type{{Oid: types.T_int8}}, []ResultPos{{0, 0}},
+		newTestCase(mheap.New(), []bool{true}, []types.Type{{Oid: types.T_int8}}, []ResultPos{{0, 0}},
 			[][]Condition{
 				{
 					{0, newExpr(0, types.Type{Oid: types.T_int8})},
