@@ -4,6 +4,7 @@ import (
 	"context"
 	"mo_join/pkg/vm/mempool"
 	"mo_join/pkg/z/container/batch"
+	"mo_join/pkg/z/container/vector"
 )
 
 type Process struct {
@@ -12,6 +13,7 @@ type Process struct {
 }
 type Register struct {
 	InputBatch     *batch.Batch
+	Vecs           []*vector.Vector
 	MergeReceivers []*WaitRegister
 }
 
@@ -24,4 +26,12 @@ func New(mp *mempool.Mempool) *Process {
 	return &Process{
 		Mp: mp,
 	}
+}
+
+func FreeRegisters(proc *Process) {
+	for _, vec := range proc.Reg.Vecs {
+		vec.Ref = 0
+		vector.Free(vec, proc.Mp)
+	}
+	proc.Reg.Vecs = proc.Reg.Vecs[:0]
 }

@@ -54,3 +54,20 @@ func (bat *Batch) InitZsOne(len int) {
 		bat.Zs[i]++
 	}
 }
+
+func Clean(bat *Batch, m *mheap.Mheap) {
+	if bat.SelsData != nil {
+		mheap.Free(m, bat.SelsData)
+		bat.Sels = nil
+		bat.SelsData = nil
+	}
+	for _, vec := range bat.Vecs {
+		if vec != nil {
+			vector.Clean(vec, m)
+		}
+	}
+	bat.Vecs = nil
+
+	bat.As = nil
+	bat.Zs = nil
+}

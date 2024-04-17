@@ -2,6 +2,7 @@ package vector
 
 import (
 	"errors"
+	"fmt"
 	"mo_join/pkg/vm/mheap"
 	"mo_join/pkg/z/container/nulls"
 	"mo_join/pkg/z/container/types"
@@ -148,4 +149,37 @@ func UnionOne(v, w *Vector, sel int64, m *mheap.Mheap) error {
 
 func DecodeFixedCol[T any](v *Vector, sz int) []T {
 	return encoding.DecodeFixedSlice[T](v.Data, sz)
+}
+
+func Free(v *Vector, m *mheap.Mheap) {
+	v.Ref--
+	if !v.Or && v.Data != nil {
+		if v.Ref == 0 && v.Link == 0 {
+			mheap.Free(m, v.Data)
+			v.Data = nil
+		}
+	}
+}
+
+func Dup(v *Vector, m *mheap.Mheap) (*Vector, error) {
+	switch v.Typ.Oid {
+
+	case types.T_int8:
+		vs := v.Col.([]int8)
+		data, err := mheap.Alloc(m, int64(len(vs)))
+		if err != nil {
+			return nil, err
+		}
+		ws := encoding.DecodeInt8Slice(data)
+		copy(ws, vs)
+		return &Vector{
+			Col:  ws,
+			Data: data,
+			Typ:  v.Typ,
+			Nsp:  v.Nsp,
+			Ref:  v.Ref,
+			Link: v.Link,
+		}, nil
+	}
+	return nil, fmt.Errorf("unsupport type %v", v.Typ)
 }
