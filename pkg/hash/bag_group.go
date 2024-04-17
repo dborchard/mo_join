@@ -36,7 +36,7 @@ func (bagGroup *BagGroup) Fill(sels, matched []int64,
 	for i, vec := range vecs {
 		switch vec.Typ.Oid {
 
-		case types.T_float64:
+		case types.TFloat64:
 			currentBatchVec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.([]float64)
@@ -45,7 +45,7 @@ func (bagGroup *BagGroup) Fill(sels, matched []int64,
 				diffs[i] = diffs[i] || (gv != vs[sel])
 			}
 
-		case types.T_varchar:
+		case types.TVarchar:
 			gvec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.(*types.Bytes)
@@ -114,7 +114,7 @@ func (bagGroup *BagGroup) Probe(sels, matched []int64,
 	for i, vec := range vecs {
 		switch vec.Typ.Oid {
 
-		case types.T_float64:
+		case types.TFloat64:
 			gvec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.([]float64)
@@ -123,7 +123,7 @@ func (bagGroup *BagGroup) Probe(sels, matched []int64,
 				diffs[i] = diffs[i] || (gv != vs[sel])
 			}
 
-		case types.T_varchar:
+		case types.TVarchar:
 			gvec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.(*types.Bytes)

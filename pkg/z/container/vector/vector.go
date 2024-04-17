@@ -16,14 +16,14 @@ import (
 func New(typ types.Type) *Vector {
 	switch typ.Oid {
 
-	case types.T_float64:
+	case types.TFloat64:
 		return &Vector{
 			Typ: typ,
 			Col: []float64{},
 			Nsp: &nulls.Nulls{},
 		}
 
-	case types.T_varchar:
+	case types.TVarchar:
 		return &Vector{
 			Typ: typ,
 			Col: &types.Bytes{},
@@ -36,9 +36,9 @@ func New(typ types.Type) *Vector {
 func (v *Vector) Append(arg interface{}) error {
 	switch v.Typ.Oid {
 
-	case types.T_float64:
+	case types.TFloat64:
 		v.Col = append(v.Col.([]float64), arg.([]float64)...)
-	case types.T_varchar:
+	case types.TVarchar:
 		return v.Col.(*types.Bytes).Append(arg.([][]byte))
 	}
 	return nil
@@ -64,7 +64,7 @@ func (v *Vector) Read(data []byte) error {
 
 	switch typ.Oid {
 
-	case types.T_float64:
+	case types.TFloat64:
 		size := encoding.DecodeUint32(data)
 		if size == 0 {
 			data = data[4:]
@@ -77,7 +77,7 @@ func (v *Vector) Read(data []byte) error {
 			v.Col = encoding.DecodeFloat64Slice(data[size:])
 		}
 
-	case types.T_varchar:
+	case types.TVarchar:
 		Col := v.Col.(*types.Bytes)
 		Col.Reset()
 
@@ -116,7 +116,7 @@ func (v *Vector) Show() ([]byte, error) {
 
 	switch v.Typ.Oid {
 
-	case types.T_float64:
+	case types.TFloat64:
 		buf.Write(encoding.EncodeType(v.Typ))
 		nb, err := v.Nsp.Show()
 		if err != nil {
@@ -129,7 +129,7 @@ func (v *Vector) Show() ([]byte, error) {
 		buf.Write(encoding.EncodeFloat64Slice(v.Col.([]float64)))
 		return buf.Bytes(), nil
 
-	case types.T_varchar:
+	case types.TVarchar:
 		buf.Write(encoding.EncodeType(v.Typ))
 		nb, err := v.Nsp.Show()
 		if err != nil {
@@ -155,7 +155,7 @@ func (v *Vector) Show() ([]byte, error) {
 
 func (v *Vector) Length() int {
 	switch v.Typ.Oid {
-	case types.T_varchar:
+	case types.TVarchar:
 		return len(v.Col.(*types.Bytes).Offsets)
 	default:
 		hp := *(*reflect.SliceHeader)((*(*emptyInterface)(unsafe.Pointer(&v.Col))).word)
@@ -169,7 +169,7 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 	}
 	switch v.Typ.Oid {
 
-	case types.T_float64:
+	case types.TFloat64:
 		newData := w.Col.([]float64)
 		oldData := v.Col.([]float64)
 		{
@@ -191,7 +191,7 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 		}
 		v.Col = append(oldData, newData[sel])
 
-	case types.T_varchar:
+	case types.TVarchar:
 		vs := w.Col.(*types.Bytes)
 		from := vs.Data[vs.Offsets[sel] : vs.Offsets[sel]+vs.Lengths[sel]]
 		col := v.Col.(*types.Bytes)
@@ -260,7 +260,7 @@ func (v *Vector) Copy(w *Vector, vi, wi int64, proc *process.Process) error {
 func (v *Vector) String() string {
 	switch v.Typ.Oid {
 
-	case types.T_float64:
+	case types.TFloat64:
 		col := v.Col.([]float64)
 		if len(col) == 1 {
 			if v.Nsp.Contains(0) {
@@ -270,7 +270,7 @@ func (v *Vector) String() string {
 			}
 		}
 
-	case types.T_varchar:
+	case types.TVarchar:
 		col := v.Col.(*types.Bytes)
 		if len(col.Offsets) == 1 {
 			if v.Nsp.Contains(0) {

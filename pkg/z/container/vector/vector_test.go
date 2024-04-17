@@ -12,8 +12,8 @@ import (
 )
 
 func TestVector(t *testing.T) {
-	oldVec := New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
-	newVec := New(types.Type{Oid: types.T(types.T_varchar), Size: 24})
+	oldVec := New(types.Type{Oid: types.T(types.TVarchar), Size: 24})
+	newVec := New(types.Type{Oid: types.T(types.TVarchar), Size: 24})
 	{
 		vs := make([][]byte, 10)
 		for i := 0; i < 10; i++ {

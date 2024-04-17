@@ -3,8 +3,8 @@ package types
 type T uint8
 
 const (
-	T_varchar = 21
-	T_float64 = 13
+	TFloat64 T = 0
+	TVarchar   = 1
 )
 
 type Type struct {
