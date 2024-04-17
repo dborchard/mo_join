@@ -90,10 +90,10 @@ func (bagGroup *BagGroup) Fill(sels, matched []int64,
 				copy(sData[mempool.HeaderSize:], bagGroup.Sdata[mempool.HeaderSize:])
 				proc.Free(bagGroup.Sdata)
 			}
-			bagGroup.Is = encoding.DecodeInt64Slice(iData[mempool.HeaderSize:])
+			bagGroup.Is = encoding.DecodeSlice[int64](iData[mempool.HeaderSize:])
 			bagGroup.Idata = iData
 			bagGroup.Is = bagGroup.Is[:length-len(matched)]
-			bagGroup.Sels = encoding.DecodeInt64Slice(sData[mempool.HeaderSize:])
+			bagGroup.Sels = encoding.DecodeSlice[int64](sData[mempool.HeaderSize:])
 			bagGroup.Sdata = sData
 			bagGroup.Sels = bagGroup.Sels[:length-len(matched)]
 		}

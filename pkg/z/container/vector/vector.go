@@ -68,13 +68,13 @@ func (v *Vector) Read(data []byte) error {
 		size := encoding.DecodeUint32(data)
 		if size == 0 {
 			data = data[4:]
-			v.Col = encoding.DecodeFloat64Slice(data)
+			v.Col = encoding.DecodeSlice[float64](data)
 		} else {
 			data = data[4:]
 			if err := v.Nsp.Read(data[:size]); err != nil {
 				return err
 			}
-			v.Col = encoding.DecodeFloat64Slice(data[size:])
+			v.Col = encoding.DecodeSlice[float64](data[size:])
 		}
 
 	case types.TVarchar:
@@ -98,7 +98,7 @@ func (v *Vector) Read(data []byte) error {
 
 		data = data[4:]
 		Col.Offsets = make([]uint32, cnt)
-		Col.Lengths = encoding.DecodeUint32Slice(data[:4*cnt])
+		Col.Lengths = encoding.DecodeSlice[uint32](data[:4*cnt])
 		Col.Data = data[4*cnt:]
 		{
 			o := uint32(0)
@@ -122,11 +122,12 @@ func (v *Vector) Show() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(encoding.EncodeUint32(uint32(len(nb))))
+		uint32Len := uint32(len(nb))
+		buf.Write(encoding.EncodeUint32(&uint32Len))
 		if len(nb) > 0 {
 			buf.Write(nb)
 		}
-		buf.Write(encoding.EncodeFloat64Slice(v.Col.([]float64)))
+		buf.Write(encoding.EncodeSlice[float64](v.Col.([]float64)))
 		return buf.Bytes(), nil
 
 	case types.TVarchar:
@@ -135,17 +136,18 @@ func (v *Vector) Show() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(encoding.EncodeUint32(uint32(len(nb))))
+		uint32Len := uint32(len(nb))
+		buf.Write(encoding.EncodeUint32(&uint32Len))
 		if len(nb) > 0 {
 			buf.Write(nb)
 		}
 		Col := v.Col.(*types.Bytes)
 		cnt := int32(len(Col.Offsets))
-		buf.Write(encoding.EncodeInt32(cnt))
+		buf.Write(encoding.EncodeInt32(&cnt))
 		if cnt == 0 {
 			return buf.Bytes(), nil
 		}
-		buf.Write(encoding.EncodeUint32Slice(Col.Lengths))
+		buf.Write(encoding.EncodeSlice[uint32](Col.Lengths))
 		buf.Write(Col.Data)
 		return buf.Bytes(), nil
 	default:
@@ -184,7 +186,7 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 				} else {
 					copy(data[:mempool.HeaderSize], w.Data[:mempool.HeaderSize])
 				}
-				v.Col = encoding.DecodeFloat64Slice(data[mempool.HeaderSize : mempool.HeaderSize+len(oldData)*8])
+				v.Col = encoding.DecodeSlice[float64](data[mempool.HeaderSize : mempool.HeaderSize+len(oldData)*8])
 				v.Data = data
 				oldData = v.Col.([]float64)
 			}

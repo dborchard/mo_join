@@ -3,8 +3,8 @@ package encoding
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"mo_join/pkg/z/container/types"
-	"reflect"
 	"unsafe"
 )
 
@@ -38,72 +38,51 @@ func Decode(data []byte, v interface{}) error {
 
 //-----------------------------------------------------------
 
-func EncodeInt32(v int32) []byte {
-	hp := reflect.SliceHeader{Data: uintptr(unsafe.Pointer(&v)), Len: 4, Cap: 4}
-	return *(*[]byte)(unsafe.Pointer(&hp))
+func EncodeInt32(v *int32) []byte {
+	return unsafe.Slice((*byte)(unsafe.Pointer(v)), 4)
 }
+
 func DecodeInt32(v []byte) int32 {
 	return *(*int32)(unsafe.Pointer(&v[0]))
 }
 
-func EncodeInt64(v int64) []byte {
-	hp := reflect.SliceHeader{Data: uintptr(unsafe.Pointer(&v)), Len: 8, Cap: 8}
-	return *(*[]byte)(unsafe.Pointer(&hp))
+func EncodeInt64(v *int64) []byte {
+	return unsafe.Slice((*byte)(unsafe.Pointer(v)), 8)
 }
 
 //-----------------------------------------------------------
 
-func EncodeUint32(v uint32) []byte {
-	hp := reflect.SliceHeader{Data: uintptr(unsafe.Pointer(&v)), Len: 4, Cap: 4}
-	return *(*[]byte)(unsafe.Pointer(&hp))
+func EncodeUint32(v *uint32) []byte {
+	return unsafe.Slice((*byte)(unsafe.Pointer(v)), 4)
 }
 
 func DecodeUint32(v []byte) uint32 {
 	return *(*uint32)(unsafe.Pointer(&v[0]))
 }
 
-func EncodeUint64(v uint64) []byte {
-	hp := reflect.SliceHeader{Data: uintptr(unsafe.Pointer(&v)), Len: 8, Cap: 8}
-	return *(*[]byte)(unsafe.Pointer(&hp))
+//-----------------------------------------------------------
+
+func EncodeSlice[T any](v []T) []byte {
+	var t T
+	sz := int(unsafe.Sizeof(t))
+	if len(v) > 0 {
+		return unsafe.Slice((*byte)(unsafe.Pointer(&v[0])), len(v)*sz)[:len(v)*sz]
+	}
+	return nil
+}
+
+func DecodeSlice[T any](v []byte) []T {
+	var t T
+	sz := int(unsafe.Sizeof(t))
+
+	if len(v)%sz != 0 {
+		panic(errors.New("decode slice that is not a multiple of element size"))
+	}
+
+	if len(v) > 0 {
+		return unsafe.Slice((*T)(unsafe.Pointer(&v[0])), len(v)/sz)[:len(v)/sz]
+	}
+	return nil
 }
 
 //-----------------------------------------------------------
-
-func DecodeInt64Slice(v []byte) []int64 {
-	hp := *(*reflect.SliceHeader)(unsafe.Pointer(&v))
-	hp.Len /= 8
-	hp.Cap /= 8
-	return *(*[]int64)(unsafe.Pointer(&hp))
-}
-
-//-----------------------------------------------------------
-
-func EncodeUint32Slice(v []uint32) []byte {
-	hp := *(*reflect.SliceHeader)(unsafe.Pointer(&v))
-	hp.Len *= 4
-	hp.Cap *= 4
-	return *(*[]byte)(unsafe.Pointer(&hp))
-}
-
-func DecodeUint32Slice(v []byte) []uint32 {
-	hp := *(*reflect.SliceHeader)(unsafe.Pointer(&v))
-	hp.Len /= 4
-	hp.Cap /= 4
-	return *(*[]uint32)(unsafe.Pointer(&hp))
-}
-
-//-----------------------------------------------------------
-
-func EncodeFloat64Slice(v []float64) []byte {
-	hp := *(*reflect.SliceHeader)(unsafe.Pointer(&v))
-	hp.Len *= 8
-	hp.Cap *= 8
-	return *(*[]byte)(unsafe.Pointer(&hp))
-}
-
-func DecodeFloat64Slice(v []byte) []float64 {
-	hp := *(*reflect.SliceHeader)(unsafe.Pointer(&v))
-	hp.Len /= 8
-	hp.Cap /= 8
-	return *(*[]float64)(unsafe.Pointer(&hp))
-}
