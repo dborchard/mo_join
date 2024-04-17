@@ -18,6 +18,7 @@ type Container struct {
 	attrs   []string
 	builded bool
 
+	// it is a hashmap.
 	hashs []uint64
 	slots map[uint64]int // hashs -> sels index
 	sels  [][]int64      // sels

@@ -23,7 +23,8 @@ func TestVector(t *testing.T) {
 		if err := oldVec.Append(vs); err != nil {
 			log.Fatal(err)
 		}
-		oldVec.Data = encoding.EncodeInt64(1)
+		_val := int64(1)
+		oldVec.Data = encoding.EncodeInt64(&_val)
 	}
 
 	{

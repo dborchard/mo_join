@@ -208,27 +208,27 @@ func (container *Container) buildUnit(
 
 	// Create Partitions based on those Hash Keys
 	copy(container.diffs[:count], ZeroBools[:count])
-	for hashKey, selsIdx := range container.slots {
-		remaining := container.sels[selsIdx]
+	for hashKey, bucketIdx := range container.slots {
+		vectorIdxPresentInHashMap := container.sels[bucketIdx]
 		if gs, ok := container.groups[hashKey]; ok {
 			for _, g := range gs {
-				if remaining, err = g.Fill(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
+				if vectorIdxPresentInHashMap, err = g.Fill(vectorIdxPresentInHashMap, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
 					return err
 				}
-				copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
+				copy(container.diffs[:len(vectorIdxPresentInHashMap)], ZeroBools[:len(vectorIdxPresentInHashMap)])
 			}
 		} else {
 			container.groups[hashKey] = make([]*hash.BagGroup, 0, 8)
 		}
-		for len(remaining) > 0 {
-			g := hash.NewBagGroup(int64(len(container.bats)-1), int64(remaining[0]))
+		for len(vectorIdxPresentInHashMap) > 0 {
+			g := hash.NewBagGroup(int64(len(container.bats)-1), vectorIdxPresentInHashMap[0])
 			container.groups[hashKey] = append(container.groups[hashKey], g)
-			if remaining, err = g.Fill(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
+			if vectorIdxPresentInHashMap, err = g.Fill(vectorIdxPresentInHashMap, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
 				return err
 			}
-			copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
+			copy(container.diffs[:len(vectorIdxPresentInHashMap)], ZeroBools[:len(vectorIdxPresentInHashMap)])
 		}
-		container.sels[selsIdx] = container.sels[selsIdx][:0]
+		container.sels[bucketIdx] = container.sels[bucketIdx][:0]
 
 	}
 
