@@ -3,6 +3,7 @@ module mo_join
 go 1.21
 
 require (
+	github.com/gogo/protobuf v1.2.0
 	github.com/pilosa/pilosa v1.4.1
 	github.com/stretchr/testify v1.2.2
 )
