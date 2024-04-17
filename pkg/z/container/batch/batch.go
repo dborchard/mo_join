@@ -2,101 +2,63 @@ package batch
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
+	"mo_join/pkg/vm/mheap"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/vector"
 )
 
 type Batch struct {
-	Ro    bool
-	Sels  []int64
-	Attrs []string
-	Vecs  []*vector.Vector
+	Ht   any     // anything
+	Zs   []int64 // ring
+	Vecs []*vector.Vector
 }
 
-func New(ro bool, attrs []string) *Batch {
+func New(n int) *Batch {
 	return &Batch{
-		Ro:    ro,
-		Attrs: attrs,
-		Vecs:  make([]*vector.Vector, len(attrs)),
+		Vecs: make([]*vector.Vector, n),
 	}
 }
 
 func (bat *Batch) Clean(proc *process.Process) {
-	bat.Sels = nil
 	for _, vec := range bat.Vecs {
 		vec.Free(proc)
 	}
 }
 
-func (bat *Batch) Cow() {
-	attrs := make([]string, len(bat.Attrs))
-	for i, attr := range bat.Attrs {
-		attrs[i] = attr
-	}
-	bat.Ro = false
-	bat.Attrs = attrs
-}
-
-func (bat *Batch) Reorder(attrs []string) {
-	if bat.Ro {
-		bat.Cow()
-	}
-
-	attrIndex := make(map[string]int, len(bat.Attrs))
-	for i, attr := range bat.Attrs {
-		attrIndex[attr] = i
-	}
-
-	newVecs := make([]*vector.Vector, len(attrs))
-	newAttrs := make([]string, len(attrs))
-
-	for i, name := range attrs {
-		if j, ok := attrIndex[name]; ok {
-			newVecs[i] = bat.Vecs[j]
-			newAttrs[i] = bat.Attrs[j]
-		}
-	}
-
-	bat.Vecs = newVecs
-	bat.Attrs = newAttrs
-}
-
-func (bat *Batch) Prefetch(attrs []string, vecs []*vector.Vector, proc *process.Process) error {
-	var err error
-
-	for i, attr := range attrs {
-		if vecs[i], err = bat.GetVector(attr, proc); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (bat *Batch) GetVector(name string, proc *process.Process) (*vector.Vector, error) {
-	for i, attr := range bat.Attrs {
-		if attr != name {
-			continue
-		}
-
-		data := bat.Vecs[i].Data
-		if err := bat.Vecs[i].Read(data); err != nil {
-			return nil, err
-		}
-		return bat.Vecs[i], nil
-	}
-	return nil, fmt.Errorf("attribute '%s' not exist", name)
-}
-
 func (bat *Batch) String() string {
 	var buf bytes.Buffer
-
-	if len(bat.Sels) > 0 {
-		fmt.Printf("%v\n", bat.Sels)
-	}
-	for i, attr := range bat.Attrs {
-		buf.WriteString(fmt.Sprintf("%s\n", attr))
-		buf.WriteString(fmt.Sprintf("\t%s\n", bat.Vecs[i]))
-	}
+	//TODO: need to fix this
 	return buf.String()
+}
+
+func (bat *Batch) Append(mp *mheap.Mheap, b *Batch) (*Batch, error) {
+	if bat == nil {
+		return b, nil
+	}
+	if len(bat.Vecs) != len(b.Vecs) {
+		return nil, errors.New("unexpected error happens in batch append")
+	}
+	if len(bat.Vecs) == 0 {
+		return bat, nil
+	}
+	flags := make([]uint8, vector.Length(b.Vecs[0]))
+	for i := range flags {
+		flags[i]++
+	}
+	for i := range bat.Vecs {
+		if err := vector.UnionBatch(bat.Vecs[i], b.Vecs[i], 0, vector.Length(b.Vecs[i]), flags[:vector.Length(b.Vecs[i])], mp); err != nil {
+			return nil, err
+		}
+	}
+	return bat, nil
+}
+
+func Clean(bat *Batch, m *mheap.Mheap) {
+	for _, vec := range bat.Vecs {
+		if vec != nil {
+			vector.Clean(vec, m)
+		}
+	}
+	bat.Vecs = nil
 }

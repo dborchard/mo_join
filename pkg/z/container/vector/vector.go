@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"mo_join/pkg/vm/mempool"
+	"mo_join/pkg/vm/mheap"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/nulls"
 	"mo_join/pkg/z/container/types"
@@ -16,14 +17,14 @@ import (
 func New(typ types.Type) *Vector {
 	switch typ.Oid {
 
-	case types.TFloat64:
+	case types.T_float64:
 		return &Vector{
 			Typ: typ,
 			Col: []float64{},
 			Nsp: &nulls.Nulls{},
 		}
 
-	case types.TVarchar:
+	case types.T_varchar:
 		return &Vector{
 			Typ: typ,
 			Col: &types.Bytes{},
@@ -36,9 +37,9 @@ func New(typ types.Type) *Vector {
 func (v *Vector) Append(arg interface{}) error {
 	switch v.Typ.Oid {
 
-	case types.TFloat64:
+	case types.T_float64:
 		v.Col = append(v.Col.([]float64), arg.([]float64)...)
-	case types.TVarchar:
+	case types.T_varchar:
 		return v.Col.(*types.Bytes).Append(arg.([][]byte))
 	}
 	return nil
@@ -64,7 +65,7 @@ func (v *Vector) Read(data []byte) error {
 
 	switch typ.Oid {
 
-	case types.TFloat64:
+	case types.T_float64:
 		size := encoding.DecodeUint32(data)
 		if size == 0 {
 			data = data[4:]
@@ -77,7 +78,7 @@ func (v *Vector) Read(data []byte) error {
 			v.Col = encoding.DecodeSlice[float64](data[size:])
 		}
 
-	case types.TVarchar:
+	case types.T_varchar:
 		Col := v.Col.(*types.Bytes)
 		Col.Reset()
 
@@ -116,7 +117,7 @@ func (v *Vector) Show() ([]byte, error) {
 
 	switch v.Typ.Oid {
 
-	case types.TFloat64:
+	case types.T_float64:
 		buf.Write(encoding.EncodeType(&v.Typ))
 		nb, err := v.Nsp.Show()
 		if err != nil {
@@ -130,7 +131,7 @@ func (v *Vector) Show() ([]byte, error) {
 		buf.Write(encoding.EncodeSlice[float64](v.Col.([]float64)))
 		return buf.Bytes(), nil
 
-	case types.TVarchar:
+	case types.T_varchar:
 		buf.Write(encoding.EncodeType(&v.Typ))
 		nb, err := v.Nsp.Show()
 		if err != nil {
@@ -157,7 +158,7 @@ func (v *Vector) Show() ([]byte, error) {
 
 func (v *Vector) Length() int {
 	switch v.Typ.Oid {
-	case types.TVarchar:
+	case types.T_varchar:
 		return len(v.Col.(*types.Bytes).Offsets)
 	default:
 		hp := *(*reflect.SliceHeader)((*(*emptyInterface)(unsafe.Pointer(&v.Col))).word)
@@ -171,7 +172,7 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 	}
 	switch v.Typ.Oid {
 
-	case types.TFloat64:
+	case types.T_float64:
 		newData := w.Col.([]float64)
 		oldData := v.Col.([]float64)
 		{
@@ -193,7 +194,7 @@ func (v *Vector) UnionOne(w *Vector, sel int64, proc *process.Process) error {
 		}
 		v.Col = append(oldData, newData[sel])
 
-	case types.TVarchar:
+	case types.T_varchar:
 		vs := w.Col.(*types.Bytes)
 		from := vs.Data[vs.Offsets[sel] : vs.Offsets[sel]+vs.Lengths[sel]]
 		col := v.Col.(*types.Bytes)
@@ -262,7 +263,7 @@ func (v *Vector) Copy(w *Vector, vi, wi int64, proc *process.Process) error {
 func (v *Vector) String() string {
 	switch v.Typ.Oid {
 
-	case types.TFloat64:
+	case types.T_float64:
 		col := v.Col.([]float64)
 		if len(col) == 1 {
 			if v.Nsp.Contains(0) {
@@ -272,7 +273,7 @@ func (v *Vector) String() string {
 			}
 		}
 
-	case types.TVarchar:
+	case types.T_varchar:
 		col := v.Col.(*types.Bytes)
 		if len(col.Offsets) == 1 {
 			if v.Nsp.Contains(0) {
@@ -284,4 +285,258 @@ func (v *Vector) String() string {
 
 	}
 	return fmt.Sprintf("%v-%s", v.Col, v.Nsp)
+}
+
+func Clean(v *Vector, m *mheap.Mheap) {
+	if !v.Or && v.Data != nil {
+		mheap.Free(m, v.Data)
+		v.Data = nil
+	}
+}
+
+func Length(v *Vector) int {
+	switch v.Typ.Oid {
+	case types.T_varchar:
+		return len(v.Col.(*types.Bytes).Offsets)
+	default:
+		return reflect.ValueOf(v.Col).Len()
+	}
+}
+
+func UnionBatch(v, w *Vector, offset int64, cnt int, flags []uint8, m *mheap.Mheap) error {
+	if v.Or {
+		return errors.New("UnionOne operation cannot be performed for origin vector")
+	}
+
+	oldLen := Length(v)
+
+	switch v.Typ.Oid {
+
+	case types.T_float64:
+		col := w.Col.([]float64)
+		if len(v.Data) == 0 {
+			newSize := 8
+			for newSize < cnt {
+				newSize <<= 1
+			}
+			data, err := mheap.Alloc(m, int64(newSize)*8)
+			if err != nil {
+				return err
+			}
+			v.Ref = w.Ref
+			vs := encoding.DecodeFloat64Slice(data)[:cnt]
+			for i, j := 0, 0; i < len(flags); i++ {
+				if flags[i] > 0 {
+					vs[j] = col[int(offset)+i]
+					j++
+				}
+			}
+			v.Col = vs
+			v.Data = data
+		} else {
+			vs := v.Col.([]float64)
+			n := len(vs)
+			if n+cnt > cap(vs) {
+				data, err := mheap.Grow(m, v.Data[:n*8], int64(n+cnt)*8)
+				if err != nil {
+					return err
+				}
+				mheap.Free(m, v.Data)
+				vs = encoding.DecodeFloat64Slice(data)
+				v.Data = data
+			}
+			vs = vs[:n+cnt]
+			for i, j := 0, n; i < len(flags); i++ {
+				if flags[i] > 0 {
+					vs[j] = col[int(offset)+i]
+					j++
+				}
+			}
+			v.Col = vs
+		}
+
+	case types.T_varchar:
+		vs, ws := v.Col.(*types.Bytes), w.Col.(*types.Bytes)
+		incSize := 0
+		for i, flag := range flags {
+			if flag > 0 {
+				incSize += int(ws.Lengths[int(offset)+i])
+			}
+		}
+
+		if len(v.Data) == 0 {
+			newSize := 8
+			for newSize < incSize {
+				newSize <<= 1
+			}
+			data, err := mheap.Alloc(m, int64(newSize))
+			if err != nil {
+				return err
+			}
+			v.Ref = w.Ref
+			v.Data = data
+			vs.Data = data[:0]
+		} else if n := len(vs.Data); n+incSize > cap(vs.Data) {
+			data, err := mheap.Grow(m, vs.Data, int64(n+incSize))
+			if err != nil {
+				return err
+			}
+			mheap.Free(m, v.Data)
+			v.Data = data
+			vs.Data = data[:n]
+		}
+
+		for i, flag := range flags {
+			if flag > 0 {
+				from := ws.Get(offset + int64(i))
+				vs.Lengths = append(vs.Lengths, uint32(len(from)))
+				vs.Offsets = append(vs.Offsets, uint32(len(vs.Data)))
+				vs.Data = append(vs.Data, from...)
+			}
+		}
+		v.Col = vs
+
+	}
+
+	for i, j := 0, uint64(oldLen); i < len(flags); i++ {
+		if flags[i] > 0 {
+			if nulls.Contains(w.Nsp, uint64(offset)+uint64(i)) {
+				nulls.Add(v.Nsp, j)
+			}
+			j++
+		}
+	}
+	return nil
+}
+
+func UnionOne(v, w *Vector, sel int64, m *mheap.Mheap) error {
+	if v.Or {
+		return errors.New("UnionOne operation cannot be performed for origin vector")
+	}
+	switch v.Typ.Oid {
+
+	case types.T_float64:
+		if len(v.Data) == 0 {
+			data, err := mheap.Alloc(m, 8*8)
+			if err != nil {
+				return err
+			}
+			v.Ref = w.Ref
+			vs := encoding.DecodeFloat64Slice(data)
+			vs[0] = w.Col.([]float64)[sel]
+			v.Col = vs[:1]
+			v.Data = data
+		} else {
+			vs := v.Col.([]float64)
+			if n := len(vs); n+1 >= cap(vs) {
+				data, err := mheap.Grow(m, v.Data[:n*8], int64(n+1)*8)
+				if err != nil {
+					return err
+				}
+				mheap.Free(m, v.Data)
+				vs = encoding.DecodeFloat64Slice(data)
+				vs = vs[:n]
+				v.Col = vs
+				v.Data = data
+			}
+			vs = append(vs, w.Col.([]float64)[sel])
+			v.Col = vs
+		}
+
+	case types.T_varchar:
+		vs, ws := v.Col.(*types.Bytes), w.Col.(*types.Bytes)
+		from := ws.Get(sel)
+		if len(v.Data) == 0 {
+			data, err := mheap.Alloc(m, int64(len(from))*8)
+			if err != nil {
+				return err
+			}
+			v.Ref = w.Ref
+			v.Data = data
+			vs.Data = data[:0]
+		} else if n := len(vs.Data); n+len(from) >= cap(vs.Data) {
+			data, err := mheap.Grow(m, vs.Data, int64(n+len(from)))
+			if err != nil {
+				return err
+			}
+			mheap.Free(m, v.Data)
+			v.Data = data
+			n = len(vs.Offsets)
+			vs.Data = data[:vs.Offsets[n-1]+vs.Lengths[n-1]]
+		}
+		vs.Lengths = append(vs.Lengths, uint32(len(from)))
+		{
+			n := len(vs.Offsets)
+			if n > 0 {
+				vs.Offsets = append(vs.Offsets, vs.Offsets[n-1]+vs.Lengths[n-1])
+			} else {
+				vs.Offsets = append(vs.Offsets, 0)
+			}
+		}
+		vs.Data = append(vs.Data, from...)
+		v.Col = vs
+
+	case types.T_decimal64:
+		if len(v.Data) == 0 {
+			data, err := mheap.Alloc(m, 8*8)
+			if err != nil {
+				return err
+			}
+			v.Ref = w.Ref
+			vs := encoding.DecodeDecimal64Slice(data)
+			vs[0] = w.Col.([]types.Decimal64)[sel]
+			v.Col = vs[:1]
+			v.Data = data
+		} else {
+			vs := v.Col.([]types.Decimal64)
+			if n := len(vs); n+1 >= cap(vs) {
+				data, err := mheap.Grow(m, v.Data[:n*8], int64(n+1)*8)
+				if err != nil {
+					return err
+				}
+				mheap.Free(m, v.Data)
+				vs = encoding.DecodeDecimal64Slice(data)
+				vs = vs[:n]
+				v.Col = vs
+				v.Data = data
+			}
+			vs = append(vs, w.Col.([]types.Decimal64)[sel])
+			v.Col = vs
+		}
+	case types.T_decimal128:
+		if len(v.Data) == 0 {
+			data, err := mheap.Alloc(m, 16*8)
+			if err != nil {
+				return err
+			}
+			v.Ref = w.Ref
+			vs := encoding.DecodeDecimal128Slice(data)
+			vs[0] = w.Col.([]types.Decimal128)[sel]
+			v.Col = vs[:1]
+			v.Data = data
+		} else {
+			vs := v.Col.([]types.Decimal128)
+			if n := len(vs); n+1 >= cap(vs) {
+				data, err := mheap.Grow(m, v.Data[:n*16], int64(n+1)*16)
+				if err != nil {
+					return err
+				}
+				mheap.Free(m, v.Data)
+				vs = encoding.DecodeDecimal128Slice(data)
+				vs = vs[:n]
+				v.Col = vs
+				v.Data = data
+			}
+			vs = append(vs, w.Col.([]types.Decimal128)[sel])
+			v.Col = vs
+		}
+	}
+	if nulls.Any(w.Nsp) && nulls.Contains(w.Nsp, uint64(sel)) {
+		nulls.Add(v.Nsp, uint64(Length(v)-1))
+	}
+	return nil
+}
+
+func DecodeFixedCol[T any](v *Vector, sz int) []T {
+	return encoding.DecodeFixedSlice[T](v.Data, sz)
 }

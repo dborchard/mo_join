@@ -1,5 +1,10 @@
 package mempool
 
+type Mempool struct {
+	maxSize  int
+	currSize int
+}
+
 func New(maxSize, factor int) *Mempool {
 	m := &Mempool{
 		maxSize: maxSize,
@@ -7,10 +12,26 @@ func New(maxSize, factor int) *Mempool {
 	return m
 }
 
-var OneCount = []byte{1, 0, 0, 0, 0, 0, 0, 0}
+func (m *Mempool) Size() int64 {
+	return int64(m.currSize)
+}
 
-const (
-	CountSize  = 8
-	PageSize   = 64
-	PageOffset = 6
-)
+func (m *Mempool) Alloc(size int) []byte {
+	m.currSize += size
+	size = ((size + PageSize - 1 + CountSize) >> PageOffset) << PageOffset
+	if size > m.maxSize {
+		panic("size too large")
+	}
+	data := make([]byte, size)
+	copy(data, OneCount)
+	return data
+}
+
+func (m *Mempool) Free(data []byte) bool {
+	m.currSize -= cap(data)
+	return true
+}
+
+func Alloc(m *Mempool, size int) (ret []byte) {
+	return make([]byte, size)
+}

@@ -1,18 +1,19 @@
 package process
 
 import (
+	"context"
 	"mo_join/pkg/vm/mempool"
-	"sync"
+	"mo_join/pkg/z/container/batch"
 )
 
 type WaitRegister struct {
-	Wg *sync.WaitGroup
-	Ch chan interface{}
+	Ctx context.Context
+	Ch  chan *batch.Batch
 }
 
 type Register struct {
-	NextBatch     interface{}
-	WaitRegisters []*WaitRegister
+	InputBatch     *batch.Batch
+	MergeReceivers []*WaitRegister
 }
 
 type Process struct {

@@ -44,13 +44,13 @@ func (p *Pipeline) Run(segs []engine.Segment, proc *process.Process) (bool, erro
 		if err != nil {
 			return false, err
 		}
-		proc.Reg.NextBatch = bat
+		proc.Reg.InputBatch = bat
 		if end, err := vm.Run(p.ins, proc); err != nil || end {
 			return end, err
 		}
 	}
 	{
-		proc.Reg.NextBatch = nil
+		proc.Reg.InputBatch = nil
 		if end, err := vm.Run(p.ins, proc); err != nil || end {
 			return end, err
 		}

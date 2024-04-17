@@ -85,4 +85,11 @@ func DecodeSlice[T any](v []byte) []T {
 	return nil
 }
 
+func DecodeFixedSlice[T any](v []byte, sz int) (ret []T) {
+	if len(v) > 0 {
+		ret = unsafe.Slice((*T)(unsafe.Pointer(&v[0])), cap(v)/sz)[:len(v)/sz]
+	}
+	return
+}
+
 //-----------------------------------------------------------
