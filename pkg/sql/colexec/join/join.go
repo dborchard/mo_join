@@ -16,6 +16,7 @@ package join
 
 import (
 	"bytes"
+	"mo_join/pkg/sql/colexec"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/batch"
 	"mo_join/pkg/z/container/hashtable"
@@ -48,24 +49,6 @@ func Prepare(proc *process.Process, arg interface{}) error {
 	ap.ctr.strHashMap = &hashtable.StringHashMap{}
 	ap.ctr.strHashMap.Init()
 	ap.ctr.vecs = make([]evalVector, len(ap.Conditions[0]))
-	for i, cond := range ap.Conditions[0] { // aligning the precision of decimal
-		switch types.T(cond.Expr.Typ.Id) {
-		case types.T_decimal64:
-			typ := ap.Conditions[1][i].Expr.Typ
-			if typ.Scale > cond.Expr.Typ.Scale {
-				cond.Scale = typ.Scale - cond.Expr.Typ.Scale
-			} else if typ.Scale < cond.Expr.Typ.Scale {
-				ap.Conditions[1][i].Scale = cond.Expr.Typ.Scale - typ.Scale
-			}
-		case types.T_decimal128:
-			typ := ap.Conditions[1][i].Expr.Typ
-			if typ.Scale > cond.Expr.Typ.Scale {
-				cond.Scale = typ.Scale - cond.Expr.Typ.Scale
-			} else if typ.Scale < cond.Expr.Typ.Scale {
-				ap.Conditions[1][i].Scale = cond.Expr.Typ.Scale - typ.Scale
-			}
-		}
-	}
 	{
 		flg := false
 		for _, rp := range ap.Result {
@@ -76,8 +59,6 @@ func Prepare(proc *process.Process, arg interface{}) error {
 		}
 		ap.ctr.flg = flg
 	}
-	ap.ctr.decimal64Slice = make([]types.Decimal64, UnitLimit)
-	ap.ctr.decimal128Slice = make([]types.Decimal128, UnitLimit)
 	return nil
 }
 
@@ -163,7 +144,7 @@ func (ctr *Container) build(ap *Argument, proc *process.Process) error {
 				n = UnitLimit
 			}
 			copy(ctr.zValues[:n], OneInt64s[:n])
-			for j, cond := range ap.Conditions[1] {
+			for j := range ap.Conditions[1] {
 				vec := ctr.vecs[j].vec
 				switch typLen := vec.Typ.Oid.FixedLength(); typLen {
 				case 1:
@@ -174,18 +155,6 @@ func (ctr *Container) build(ap *Argument, proc *process.Process) error {
 					fillGroupStr[uint32](ctr, vec, n, 4, i)
 				case 8:
 					fillGroupStr[uint64](ctr, vec, n, 8, i)
-				case -8:
-					if cond.Scale > 0 {
-						fillGroupStrWithDecimal64(ctr, vec, n, i, cond.Scale)
-					} else {
-						fillGroupStr[uint64](ctr, vec, n, 8, i)
-					}
-				case -16:
-					if cond.Scale > 0 {
-						fillGroupStrWithDecimal128(ctr, vec, n, i, cond.Scale)
-					} else {
-						fillGroupStr[types.Decimal128](ctr, vec, n, 16, i)
-					}
 				default:
 					vs := vec.Col.(*types.Bytes)
 					if !nulls.Any(vec.Nsp) {
@@ -295,7 +264,7 @@ func (ctr *Container) probe(bat *batch.Batch, ap *Argument, proc *process.Proces
 			n = UnitLimit
 		}
 		copy(ctr.zValues[:n], OneInt64s[:n])
-		for j, cond := range ap.Conditions[0] {
+		for j := range ap.Conditions[0] {
 			vec := ctr.vecs[j].vec
 			switch typLen := vec.Typ.Oid.FixedLength(); typLen {
 			case 1:
@@ -306,18 +275,6 @@ func (ctr *Container) probe(bat *batch.Batch, ap *Argument, proc *process.Proces
 				fillGroupStr[uint32](ctr, vec, n, 4, i)
 			case 8:
 				fillGroupStr[uint64](ctr, vec, n, 8, i)
-			case -8:
-				if cond.Scale > 0 {
-					fillGroupStrWithDecimal64(ctr, vec, n, i, cond.Scale)
-				} else {
-					fillGroupStr[uint64](ctr, vec, n, 8, i)
-				}
-			case -16:
-				if cond.Scale > 0 {
-					fillGroupStrWithDecimal128(ctr, vec, n, i, cond.Scale)
-				} else {
-					fillGroupStr[types.Decimal128](ctr, vec, n, 16, i)
-				}
 			default:
 				vs := vec.Col.(*types.Bytes)
 				if !nulls.Any(vec.Nsp) {
@@ -405,45 +362,6 @@ func fillGroupStr[T any](ctr *Container, vec *vector.Vector, n int, sz int, star
 				ctr.zValues[i] = 0
 			} else {
 				ctr.keys[i] = append(ctr.keys[i], data[(i+start)*sz:(i+start+1)*sz]...)
-			}
-		}
-	}
-}
-
-func fillGroupStrWithDecimal64(ctr *Container, vec *vector.Vector, n int, start int, scale int32) {
-	src := vector.DecodeFixedCol[types.Decimal64](vec, 8)
-	vs := types.AlignDecimal64UsingScaleDiffBatch(src[start:start+n], ctr.decimal64Slice[:n], scale)
-	data := unsafe.Slice((*byte)(unsafe.Pointer(&vs[0])), cap(vs)*8)[:len(vs)*8]
-	if !nulls.Any(vec.Nsp) {
-		for i := 0; i < n; i++ {
-			ctr.keys[i] = append(ctr.keys[i], data[(i)*8:(i+1)*8]...)
-		}
-	} else {
-		for i := 0; i < n; i++ {
-			if vec.Nsp.Np.Contains(uint64(i + start)) {
-				ctr.zValues[i] = 0
-			} else {
-				ctr.keys[i] = append(ctr.keys[i], data[(i)*8:(i+1)*8]...)
-			}
-		}
-	}
-}
-
-func fillGroupStrWithDecimal128(ctr *Container, vec *vector.Vector, n int, start int, scale int32) {
-	src := vector.DecodeFixedCol[types.Decimal128](vec, 16)
-	vs := ctr.decimal128Slice[:n]
-	types.AlignDecimal128UsingScaleDiffBatch(src[start:start+n], vs, scale)
-	data := unsafe.Slice((*byte)(unsafe.Pointer(&vs[0])), cap(vs)*16)[:len(vs)*16]
-	if !nulls.Any(vec.Nsp) {
-		for i := 0; i < n; i++ {
-			ctr.keys[i] = append(ctr.keys[i], data[(i)*16:(i+1)*16]...)
-		}
-	} else {
-		for i := 0; i < n; i++ {
-			if vec.Nsp.Np.Contains(uint64(i + start)) {
-				ctr.zValues[i] = 0
-			} else {
-				ctr.keys[i] = append(ctr.keys[i], data[(i)*16:(i+1)*16]...)
 			}
 		}
 	}

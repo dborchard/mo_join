@@ -19,10 +19,8 @@ type Type struct {
 
 func (t T) FixedLength() int {
 	switch t {
-
 	case T_int8:
 		return 1
-
 	}
 	panic(errors.New("unknown type %s"))
 }

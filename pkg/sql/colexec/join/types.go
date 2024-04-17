@@ -15,9 +15,9 @@
 package join
 
 import (
+	"mo_join/pkg/sql/plan"
 	"mo_join/pkg/z/container/batch"
 	"mo_join/pkg/z/container/hashtable"
-	"mo_join/pkg/z/container/types"
 	"mo_join/pkg/z/container/vector"
 )
 
@@ -58,9 +58,6 @@ type Container struct {
 	bat *batch.Batch
 
 	vecs []evalVector
-
-	decimal64Slice  []types.Decimal64
-	decimal128Slice []types.Decimal128
 }
 
 type ResultPos struct {

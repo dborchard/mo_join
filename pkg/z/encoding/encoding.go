@@ -92,4 +92,8 @@ func DecodeFixedSlice[T any](v []byte, sz int) (ret []T) {
 	return
 }
 
+func DecodeInt8Slice(v []byte) []int8 {
+	return *(*[]int8)(unsafe.Pointer(&v))
+}
+
 //-----------------------------------------------------------
