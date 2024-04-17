@@ -196,6 +196,7 @@ func (container *Container) buildUnit(
 
 	var err error
 
+	// Fill hash
 	{
 		copy(container.hashs[:count], OneUint64s[:count])
 		if len(sels) == 0 {

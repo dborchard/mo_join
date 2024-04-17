@@ -1,5 +1,7 @@
 package hash
 
+// Taken from library: github.com/quanee/memhash
+
 import (
 	"math/rand"
 	"unsafe"
