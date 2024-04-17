@@ -1,13 +1,12 @@
 package process
 
-import "mo_join/pkg/vm/mempool"
+import "mojoins/pkg/common/mpool"
 
-func New(mp *mempool.Mempool) *Process {
-	return &Process{
-		Mp: mp,
+func (wreg *WaitRegister) CleanChannel(m *mpool.MPool) {
+	for len(wreg.Ch) > 0 {
+		bat := <-wreg.Ch
+		if bat != nil {
+			bat.Clean(m)
+		}
 	}
-}
-
-func (p *Process) Size() int64 {
-	return p.Mp.Size()
 }
