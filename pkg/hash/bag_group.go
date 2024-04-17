@@ -11,8 +11,8 @@ import (
 )
 
 type BagGroup struct {
-	Idx int64
-	Sel int64
+	Idx int64 // column
+	Sel int64 // row
 
 	Idata []byte
 	Sdata []byte
@@ -28,26 +28,29 @@ func NewBagGroup(idx, sel int64) *BagGroup {
 	}
 }
 
-func (g *BagGroup) Fill(sels, matched []int64, vecs []*vector.Vector,
-	bats []*batch.Batch, diffs []bool, proc *process.Process) ([]int64, error) {
+func (bagGroup *BagGroup) Fill(sels, matched []int64,
+	vecs []*vector.Vector,
+	bats []*batch.Batch,
+	diffs []bool,
+	proc *process.Process) ([]int64, error) {
 	for i, vec := range vecs {
 		switch vec.Typ.Oid {
 
 		case types.T_float64:
-			gvec := bats[g.Idx].Vecs[i]
+			gvec := bats[bagGroup.Idx].Vecs[i]
 
 			vs := vec.Col.([]float64)
-			gv := gvec.Col.([]float64)[g.Sel]
+			gv := gvec.Col.([]float64)[bagGroup.Sel]
 			for i, sel := range sels {
 				diffs[i] = diffs[i] || (gv != vs[sel])
 			}
 
 		case types.T_varchar:
-			gvec := bats[g.Idx].Vecs[i]
+			gvec := bats[bagGroup.Idx].Vecs[i]
 
 			vs := vec.Col.(*types.Bytes)
 			gvs := gvec.Col.(*types.Bytes)
-			gv := gvs.Get(int(g.Sel))
+			gv := gvs.Get(int(bagGroup.Sel))
 			for i, sel := range sels {
 				diffs[i] = diffs[i] || (bytes.Compare(gv, vs.Get(int(sel))) != 0)
 			}
@@ -66,8 +69,9 @@ func (g *BagGroup) Fill(sels, matched []int64, vecs []*vector.Vector,
 	}
 	if len(matched) > 0 {
 		idx := int64(len(bats) - 1)
-		length := len(g.Sels) + len(matched)
-		if cap(g.Sels) < length {
+		length := len(bagGroup.Sels) + len(matched)
+		if cap(bagGroup.Sels) < length {
+			// Capacity increase.
 			iData, err := proc.Alloc(int64(length) * 8)
 			if err != nil {
 				return nil, err
@@ -77,30 +81,30 @@ func (g *BagGroup) Fill(sels, matched []int64, vecs []*vector.Vector,
 				proc.Free(iData)
 				return nil, err
 			}
-			if g.Idata != nil {
-				copy(iData[mempool.HeaderSize:], g.Idata[mempool.HeaderSize:])
-				proc.Free(g.Idata)
+			if bagGroup.Idata != nil {
+				copy(iData[mempool.HeaderSize:], bagGroup.Idata[mempool.HeaderSize:])
+				proc.Free(bagGroup.Idata)
 			}
-			if g.Sdata != nil {
-				copy(sData[mempool.HeaderSize:], g.Sdata[mempool.HeaderSize:])
-				proc.Free(g.Sdata)
+			if bagGroup.Sdata != nil {
+				copy(sData[mempool.HeaderSize:], bagGroup.Sdata[mempool.HeaderSize:])
+				proc.Free(bagGroup.Sdata)
 			}
-			g.Is = encoding.DecodeInt64Slice(iData[mempool.HeaderSize:])
-			g.Idata = iData
-			g.Is = g.Is[:length-len(matched)]
-			g.Sels = encoding.DecodeInt64Slice(sData[mempool.HeaderSize:])
-			g.Sdata = sData
-			g.Sels = g.Sels[:length-len(matched)]
+			bagGroup.Is = encoding.DecodeInt64Slice(iData[mempool.HeaderSize:])
+			bagGroup.Idata = iData
+			bagGroup.Is = bagGroup.Is[:length-len(matched)]
+			bagGroup.Sels = encoding.DecodeInt64Slice(sData[mempool.HeaderSize:])
+			bagGroup.Sdata = sData
+			bagGroup.Sels = bagGroup.Sels[:length-len(matched)]
 		}
-		g.Sels = append(g.Sels, matched...)
+		bagGroup.Sels = append(bagGroup.Sels, matched...)
 		for range matched {
-			g.Is = append(g.Is, idx)
+			bagGroup.Is = append(bagGroup.Is, idx)
 		}
 	}
 	return remaining, nil
 }
 
-func (g *BagGroup) Probe(sels, matched []int64,
+func (bagGroup *BagGroup) Probe(sels, matched []int64,
 	vecs []*vector.Vector,
 	bats []*batch.Batch,
 	diffs []bool,
@@ -110,20 +114,20 @@ func (g *BagGroup) Probe(sels, matched []int64,
 		switch vec.Typ.Oid {
 
 		case types.T_float64:
-			gvec := bats[g.Idx].Vecs[i]
+			gvec := bats[bagGroup.Idx].Vecs[i]
 
 			vs := vec.Col.([]float64)
-			gv := gvec.Col.([]float64)[g.Sel]
+			gv := gvec.Col.([]float64)[bagGroup.Sel]
 			for i, sel := range sels {
 				diffs[i] = diffs[i] || (gv != vs[sel])
 			}
 
 		case types.T_varchar:
-			gvec := bats[g.Idx].Vecs[i]
+			gvec := bats[bagGroup.Idx].Vecs[i]
 
 			vs := vec.Col.(*types.Bytes)
 			gvs := gvec.Col.(*types.Bytes)
-			gv := gvs.Get(int(g.Sel))
+			gv := gvs.Get(int(bagGroup.Sel))
 			for i, sel := range sels {
 				diffs[i] = diffs[i] || (bytes.Compare(gv, vs.Get(int(sel))) != 0)
 			}
@@ -143,13 +147,13 @@ func (g *BagGroup) Probe(sels, matched []int64,
 	return matched, remaining, nil
 }
 
-func (g *BagGroup) Free(proc *process.Process) {
-	if g.Idata != nil {
-		proc.Free(g.Idata)
-		g.Idata = nil
+func (bagGroup *BagGroup) Free(proc *process.Process) {
+	if bagGroup.Idata != nil {
+		proc.Free(bagGroup.Idata)
+		bagGroup.Idata = nil
 	}
-	if g.Sdata != nil {
-		proc.Free(g.Sdata)
-		g.Sdata = nil
+	if bagGroup.Sdata != nil {
+		proc.Free(bagGroup.Sdata)
+		bagGroup.Sdata = nil
 	}
 }
