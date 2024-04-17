@@ -18,7 +18,7 @@ func Prepare(_ *process.Process, _ interface{}) error {
 func Call(proc *process.Process, arg interface{}) (bool, error) {
 	if proc.Reg.NextBatch != nil {
 		bat := proc.Reg.NextBatch.(*batch.Batch)
-		fmt.Printf("%s\n", bat)
+		fmt.Printf("output \n %s\n", bat)
 		bat.Clean(proc)
 	}
 	return false, nil
