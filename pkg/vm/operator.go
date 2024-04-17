@@ -2,7 +2,7 @@ package vm
 
 import (
 	"bytes"
-	"mojoins/pkg/vm/process"
+	"mo_join/pkg/vm/process"
 )
 
 type Operator interface {

@@ -1,6 +1,6 @@
 package process
 
-import "mojoins/pkg/common/mpool"
+import "mo_join/pkg/common/mpool"
 
 func (wreg *WaitRegister) CleanChannel(m *mpool.MPool) {
 	for len(wreg.Ch) > 0 {

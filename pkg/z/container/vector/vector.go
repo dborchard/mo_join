@@ -1,8 +1,8 @@
 package vector
 
 import (
-	"mojoins/pkg/common/mpool"
-	"mojoins/pkg/z/container/types"
+	"mo_join/pkg/common/mpool"
+	"mo_join/pkg/z/container/types"
 )
 
 // GetUnionAllFunction : A more sensible function for copying vector,

@@ -6,7 +6,8 @@ import (
 )
 
 type QueryBuilder struct {
-	qry *plan.Query
+	qry       *plan.Query
+	ctxByNode []*BindContext
 }
 
 func (builder *QueryBuilder) GetContext() context.Context {

@@ -15,7 +15,7 @@ func makeTblCrossJoinEntriesCentroidOnPK(builder *QueryBuilder, bindCtx *BindCon
 			},
 			Expr: &plan.Expr_Col{
 				Col: &plan.ColRef{
-					RelPos: idxTags["entries.project"],
+					RelPos: 0,
 					ColPos: 2, // entries.origin_pk
 				},
 			},
@@ -27,7 +27,7 @@ func makeTblCrossJoinEntriesCentroidOnPK(builder *QueryBuilder, bindCtx *BindCon
 			Expr: &plan.Expr_Col{
 				Col: &plan.ColRef{
 					RelPos: scanNode.BindingTags[0],
-					ColPos: pkPos, // tbl.pk
+					ColPos: 0, // tbl.pk
 				},
 			},
 		},

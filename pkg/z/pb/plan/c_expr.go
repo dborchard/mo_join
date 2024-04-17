@@ -38,7 +38,7 @@ type Function struct {
 }
 
 type Expr_Col struct {
-	Col *Column
+	Col *ColRef
 }
 
 func (e *Expr_Col) isExpr_Expr() {
@@ -56,6 +56,10 @@ func (e *Expr_Col) ProtoSize() int {
 	panic("implement me")
 }
 
-type Column struct {
-	Name string
+type ColRef struct {
+	RelPos  int32  `protobuf:"varint,1,opt,name=rel_pos,json=relPos,proto3" json:"rel_pos,omitempty"`
+	ColPos  int32  `protobuf:"varint,2,opt,name=col_pos,json=colPos,proto3" json:"col_pos,omitempty"`
+	Name    string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	TblName string `protobuf:"bytes,4,opt,name=tbl_name,json=tblName,proto3" json:"tbl_name,omitempty"`
+	DbName  string `protobuf:"bytes,5,opt,name=db_name,json=dbName,proto3" json:"db_name,omitempty"`
 }
