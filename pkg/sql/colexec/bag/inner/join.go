@@ -195,7 +195,8 @@ func (container *Container) buildUnit(
 
 	var err error
 
-	// Fill hash
+	// 1. Partition Phase
+	// Add Partition Hash Key to all the rows
 	{
 		copy(container.hashs[:count], OneUint64s[:count])
 		if len(sels) == 0 {
@@ -205,10 +206,11 @@ func (container *Container) buildUnit(
 		}
 	}
 
+	// Create Partitions based on those Hash Keys
 	copy(container.diffs[:count], ZeroBools[:count])
-	for key, val := range container.slots {
-		remaining := container.sels[val]
-		if gs, ok := container.groups[key]; ok {
+	for hashKey, selsIdx := range container.slots {
+		remaining := container.sels[selsIdx]
+		if gs, ok := container.groups[hashKey]; ok {
 			for _, g := range gs {
 				if remaining, err = g.Fill(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
 					return err
@@ -216,19 +218,21 @@ func (container *Container) buildUnit(
 				copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
 			}
 		} else {
-			container.groups[key] = make([]*hash.BagGroup, 0, 8)
+			container.groups[hashKey] = make([]*hash.BagGroup, 0, 8)
 		}
 		for len(remaining) > 0 {
 			g := hash.NewBagGroup(int64(len(container.bats)-1), int64(remaining[0]))
-			container.groups[key] = append(container.groups[key], g)
+			container.groups[hashKey] = append(container.groups[hashKey], g)
 			if remaining, err = g.Fill(remaining, container.matchs, vecs, container.bats, container.diffs, proc); err != nil {
 				return err
 			}
 			copy(container.diffs[:len(remaining)], ZeroBools[:len(remaining)])
 		}
-		container.sels[val] = container.sels[val][:0]
+		container.sels[selsIdx] = container.sels[selsIdx][:0]
 
 	}
+
+	// reset slots
 	container.slots = make(map[uint64]int)
 	return nil
 }
@@ -345,14 +349,14 @@ func (container *Container) fillHash(start, count int, vecs []*vector.Vector) {
 		hash.Rehash(count, container.hashs, vec)
 	}
 	nextslot := 0
-	for hashIndex, hashVal := range container.hashs {
+	for hashIdx, hashVal := range container.hashs {
 		slot, ok := container.slots[hashVal]
 		if !ok {
 			slot = nextslot
 			container.slots[hashVal] = slot
 			nextslot++
 		}
-		container.sels[slot] = append(container.sels[slot], int64(hashIndex+start))
+		container.sels[slot] = append(container.sels[slot], int64(start+hashIdx))
 	}
 }
 

@@ -15,19 +15,20 @@ var (
 )
 
 type Container struct {
-	attrs []string
-
+	attrs   []string
 	builded bool
-	hashs   []uint64
-	sels    [][]int64                   // sels
-	slots   map[uint64]int              // hash code -> sels index
-	groups  map[uint64][]*hash.BagGroup // hash code -> group list
-	diffs   []bool
-	matchs  []int64
+
+	hashs []uint64
+	slots map[uint64]int // hashs -> sels index
+	sels  [][]int64      // sels
+
+	groups map[uint64][]*hash.BagGroup // hash code -> group list
+	diffs  []bool
+	matchs []int64
 
 	bats       []*batch.Batch // s relation
 	probeState struct {
-		bat *batch.Batch // RxS output relation
+		bat *batch.Batch //  R ⨝ S output relation
 	}
 }
 

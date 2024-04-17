@@ -11,8 +11,8 @@ import (
 )
 
 type BagGroup struct {
-	Idx int64 // column
-	Sel int64 // row
+	BatchIdx int64 // column
+	Sel      int64 // row
 
 	Idata []byte
 	Sdata []byte
@@ -23,8 +23,8 @@ type BagGroup struct {
 
 func NewBagGroup(idx, sel int64) *BagGroup {
 	return &BagGroup{
-		Idx: idx,
-		Sel: sel,
+		BatchIdx: idx,
+		Sel:      sel,
 	}
 }
 
@@ -37,16 +37,16 @@ func (bagGroup *BagGroup) Fill(sels, matched []int64,
 		switch vec.Typ.Oid {
 
 		case types.T_float64:
-			gvec := bats[bagGroup.Idx].Vecs[i]
+			currentBatchVec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.([]float64)
-			gv := gvec.Col.([]float64)[bagGroup.Sel]
+			gv := currentBatchVec.Col.([]float64)[bagGroup.Sel]
 			for i, sel := range sels {
 				diffs[i] = diffs[i] || (gv != vs[sel])
 			}
 
 		case types.T_varchar:
-			gvec := bats[bagGroup.Idx].Vecs[i]
+			gvec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.(*types.Bytes)
 			gvs := gvec.Col.(*types.Bytes)
@@ -57,6 +57,7 @@ func (bagGroup *BagGroup) Fill(sels, matched []int64,
 
 		}
 	}
+	//NOTE: optimization.
 	n := len(sels)
 	matched = matched[:0]
 	remaining := sels[:0]
@@ -114,7 +115,7 @@ func (bagGroup *BagGroup) Probe(sels, matched []int64,
 		switch vec.Typ.Oid {
 
 		case types.T_float64:
-			gvec := bats[bagGroup.Idx].Vecs[i]
+			gvec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.([]float64)
 			gv := gvec.Col.([]float64)[bagGroup.Sel]
@@ -123,7 +124,7 @@ func (bagGroup *BagGroup) Probe(sels, matched []int64,
 			}
 
 		case types.T_varchar:
-			gvec := bats[bagGroup.Idx].Vecs[i]
+			gvec := bats[bagGroup.BatchIdx].Vecs[i]
 
 			vs := vec.Col.(*types.Bytes)
 			gvs := gvec.Col.(*types.Bytes)
