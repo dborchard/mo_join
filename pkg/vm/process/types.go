@@ -11,7 +11,7 @@ type WaitRegister struct {
 }
 
 type Register struct {
-	BatchRead     interface{}
+	NextBatch     interface{}
 	WaitRegisters []*WaitRegister
 }
 

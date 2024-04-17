@@ -97,7 +97,7 @@ func (container *Container) probe(rName, sName string, attrs []string, proc *pro
 		v := <-reg.Ch
 		if v == nil {
 			reg.Wg.Done()
-			proc.Reg.BatchRead = nil
+			proc.Reg.NextBatch = nil
 			container.clean(nil, proc)
 			return true, nil
 		}
@@ -109,7 +109,7 @@ func (container *Container) probe(rName, sName string, attrs []string, proc *pro
 		if len(container.groups) == 0 {
 			reg.Ch = nil
 			reg.Wg.Done()
-			proc.Reg.BatchRead = nil
+			proc.Reg.NextBatch = nil
 			container.clean(bat, proc)
 			return true, nil
 		}
@@ -126,10 +126,12 @@ func (container *Container) probe(rName, sName string, attrs []string, proc *pro
 		container.probeState.bat = batch.New(true, container.attrs)
 		{
 			i := 0
+			// R relation
 			for _, vec := range bat.Vecs {
 				container.probeState.bat.Vecs[i] = vector.New(vec.Typ)
 				i++
 			}
+			// S relation
 			for _, vec := range container.bats[0].Vecs {
 				container.probeState.bat.Vecs[i] = vector.New(vec.Typ)
 				i++
@@ -155,14 +157,15 @@ func (container *Container) probe(rName, sName string, attrs []string, proc *pro
 		}
 		reg.Wg.Done()
 		bat.Clean(proc)
-		proc.Reg.BatchRead = container.probeState.bat
+		proc.Reg.NextBatch = container.probeState.bat
 		container.probeState.bat = nil
 		return false, nil
 	}
 }
 
 func (container *Container) buildBatch(vecs []*vector.Vector, proc *process.Process) error {
-	for i, j := 0, vecs[0].Length(); i < j; i += UnitLimit {
+	rowCount := vecs[0].Length()
+	for i, j := 0, rowCount; i < j; i += UnitLimit {
 		length := j - i
 		if length > UnitLimit {
 			length = UnitLimit
@@ -187,8 +190,10 @@ func (container *Container) buildBatchSels(sels []int64, vecs []*vector.Vector, 
 	return nil
 }
 
-func (container *Container) buildUnit(start, count int, sels []int64,
+func (container *Container) buildUnit(
+	start, count int, sels []int64,
 	vecs []*vector.Vector, proc *process.Process) error {
+
 	var err error
 
 	{
@@ -199,6 +204,7 @@ func (container *Container) buildUnit(start, count int, sels []int64,
 			container.fillHashSels(count, sels, vecs)
 		}
 	}
+
 	copy(container.diffs[:count], ZeroBools[:count])
 	for i, hs := range container.slots.Ks {
 		for j, h := range hs {
@@ -234,6 +240,7 @@ func (container *Container) probeBatch(bat *batch.Batch, vecs []*vector.Vector, 
 		if length > UnitLimit {
 			length = UnitLimit
 		}
+
 		if err := container.probeUnit(i, length, nil, bat, vecs, proc); err != nil {
 			return err
 		}

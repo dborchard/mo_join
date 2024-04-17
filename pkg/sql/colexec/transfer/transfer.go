@@ -18,14 +18,14 @@ func Call(proc *process.Process, arg interface{}) (bool, error) {
 	n := arg.(*Argument)
 	reg := n.Reg
 	if reg.Ch == nil {
-		if proc.Reg.BatchRead != nil {
-			bat := proc.Reg.BatchRead.(*batch.Batch)
+		if proc.Reg.NextBatch != nil {
+			bat := proc.Reg.NextBatch.(*batch.Batch)
 			bat.Clean(proc)
 		}
 		return true, nil
 	}
 	reg.Wg.Add(1)
-	reg.Ch <- proc.Reg.BatchRead
+	reg.Ch <- proc.Reg.NextBatch
 	reg.Wg.Wait()
 	return false, nil
 }
