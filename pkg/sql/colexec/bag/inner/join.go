@@ -267,6 +267,7 @@ func (container *Container) probeUnit(start, count int, sels []int64, bat *batch
 	var err error
 	var matchs []int64
 
+	// Fill hash
 	{
 		copy(container.hashs[:count], OneUint64s[:count])
 		if len(sels) == 0 {
@@ -275,6 +276,8 @@ func (container *Container) probeUnit(start, count int, sels []int64, bat *batch
 			container.fillHashSels(count, sels, vecs)
 		}
 	}
+
+	// Fill diff
 	copy(container.diffs[:count], ZeroBools[:count])
 	for i, hs := range container.slots.Ks {
 		for j, h := range hs {
