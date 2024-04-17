@@ -345,14 +345,14 @@ func (container *Container) fillHash(start, count int, vecs []*vector.Vector) {
 		hash.Rehash(count, container.hashs, vec)
 	}
 	nextslot := 0
-	for i, h := range container.hashs {
-		slot, ok := container.slots[h]
+	for hashIndex, hashVal := range container.hashs {
+		slot, ok := container.slots[hashVal]
 		if !ok {
 			slot = nextslot
-			container.slots[h] = slot
+			container.slots[hashVal] = slot
 			nextslot++
 		}
-		container.sels[slot] = append(container.sels[slot], int64(i+start))
+		container.sels[slot] = append(container.sels[slot], int64(hashIndex+start))
 	}
 }
 
