@@ -21,7 +21,6 @@ import (
 	"mo_join/pkg/z/container/batch"
 	"mo_join/pkg/z/container/hashtable"
 	"mo_join/pkg/z/container/nulls"
-	"mo_join/pkg/z/container/types"
 	"mo_join/pkg/z/container/vector"
 	"unsafe"
 )
@@ -53,7 +52,7 @@ func Prepare(proc *process.Process, arg interface{}) error {
 		flg := false
 		for _, rp := range ap.Result {
 			if rp.Rel == 1 {
-				ap.ctr.poses = append(ap.ctr.poses, rp.Pos)
+				ap.ctr.colPos = append(ap.ctr.colPos, rp.Pos)
 				flg = true
 			}
 		}
@@ -114,20 +113,12 @@ func (ctr *Container) build(arg *Argument, proc *process.Process) error {
 		}
 		if ctr.bat == nil {
 			ctr.bat = batch.NewWithSize(len(bat.Vecs))
-			for _, pos := range ctr.poses {
+			for _, pos := range ctr.colPos {
 				ctr.bat.Vecs[pos] = vector.New(bat.Vecs[pos].Typ)
 			}
 		}
 		for i, cond := range arg.Conditions[1] {
-			vec, err := colexec.EvalExpr(bat, proc, cond.Expr)
-			if err != nil {
-				for j := 0; j < i; j++ {
-					if ctr.vecs[j].needFree {
-						vector.Clean(ctr.vecs[j].vec, proc.Mp)
-					}
-				}
-				return err
-			}
+			vec, _ := colexec.EvalExpr(bat, proc, cond.Expr)
 			ctr.vecs[i].vec = vec
 			ctr.vecs[i].needFree = true
 			for j := range bat.Vecs {
@@ -156,20 +147,7 @@ func (ctr *Container) build(arg *Argument, proc *process.Process) error {
 				case 8:
 					fillGroupStr[uint64](ctr, vec, n, 8, i)
 				default:
-					vs := vec.Col.(*types.Bytes)
-					if !nulls.Any(vec.Nsp) {
-						for k := 0; k < n; k++ {
-							ctr.keys[k] = append(ctr.keys[k], vs.Get(int64(i+k))...)
-						}
-					} else {
-						for k := 0; k < n; k++ {
-							if vec.Nsp.Np.Contains(uint64(i + k)) {
-								ctr.zValues[i] = 0
-							} else {
-								ctr.keys[k] = append(ctr.keys[k], vs.Get(int64(i+k))...)
-							}
-						}
-					}
+
 				}
 			}
 			for k := 0; k < n; k++ {
@@ -194,7 +172,7 @@ func (ctr *Container) build(arg *Argument, proc *process.Process) error {
 				ctr.bat.Zs[ai] += bat.Zs[i+k]
 			}
 			if cnt > 0 {
-				for _, pos := range ctr.poses {
+				for _, pos := range ctr.colPos {
 					if err := vector.UnionBatch(ctr.bat.Vecs[pos], bat.Vecs[pos], int64(i), cnt, ctr.inserted[:n], proc.Mp); err != nil {
 						bat.Clean(proc.Mp)
 						ctr.bat.Clean(proc.Mp)
@@ -232,15 +210,7 @@ func (ctr *Container) probe(bat *batch.Batch, arg *Argument, proc *process.Proce
 		}
 	}
 	for i, cond := range arg.Conditions[0] {
-		vec, err := colexec.EvalExpr(bat, proc, cond.Expr)
-		if err != nil {
-			for j := 0; j < i; j++ {
-				if ctr.vecs[j].needFree {
-					vector.Clean(ctr.vecs[j].vec, proc.Mp)
-				}
-			}
-			return err
-		}
+		vec, _ := colexec.EvalExpr(bat, proc, cond.Expr)
 		ctr.vecs[i].vec = vec
 		ctr.vecs[i].needFree = true
 		for j := range bat.Vecs {
@@ -276,20 +246,6 @@ func (ctr *Container) probe(bat *batch.Batch, arg *Argument, proc *process.Proce
 			case 8:
 				fillGroupStr[uint64](ctr, vec, n, 8, i)
 			default:
-				vs := vec.Col.(*types.Bytes)
-				if !nulls.Any(vec.Nsp) {
-					for k := 0; k < n; k++ {
-						ctr.keys[k] = append(ctr.keys[k], vs.Get(int64(i+k))...)
-					}
-				} else {
-					for k := 0; k < n; k++ {
-						if vec.Nsp.Np.Contains(uint64(i + k)) {
-							ctr.zValues[i] = 0
-						} else {
-							ctr.keys[k] = append(ctr.keys[k], vs.Get(int64(i+k))...)
-						}
-					}
-				}
 			}
 		}
 		for k := 0; k < n; k++ {

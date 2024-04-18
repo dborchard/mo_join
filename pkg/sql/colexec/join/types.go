@@ -43,22 +43,22 @@ type Container struct {
 	flg bool
 
 	// projection
-	vecs []evalVector
+	vecs   []evalVector
+	colPos []int32 // pos of vectors need to be copied
 
-	state     int
-	rows      uint64
-	hashes    []uint64
-	inserted  []uint8
-	zInserted []uint8
-	poses     []int32 // pos of vectors need to be copied
-	sels      [][]int64
-	bat       *batch.Batch
+	state  int
+	rows   uint64
+	hashes []uint64
+	sels   [][]int64
+	bat    *batch.Batch
 
 	// build phase
+	keys          [][]byte
 	strHashMap    *hashtable.StringHashMap
 	strHashStates [][3]uint64
-	keys          [][]byte
 	zValues       []int64
+	inserted      []uint8
+	zInserted     []uint8
 	values        []uint64
 }
 
