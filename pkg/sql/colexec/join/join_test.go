@@ -49,7 +49,10 @@ var (
 
 func init() {
 	tcs = []joinTestCase{
-		newTestCase(mheap.New(), []bool{true}, []types.Type{{Oid: types.T_int8}}, []ResultPos{{0, 0}},
+		newTestCase(mheap.New(),
+			[]bool{false},                     // Some Nsp
+			[]types.Type{{Oid: types.T_int8}}, // Batch column
+			[]ResultPos{{0, 0}},
 			[][]Condition{
 				{
 					{0, newExpr(0, types.Type{Oid: types.T_int8})},
@@ -77,15 +80,18 @@ func TestPrepare(t *testing.T) {
 func TestJoin(t *testing.T) {
 	for _, tc := range tcs {
 		Prepare(tc.proc, tc.arg)
+
 		tc.proc.Reg.MergeReceivers[0].Ch <- newBatch(t, tc.flgs, tc.types, tc.proc, Rows)
 		tc.proc.Reg.MergeReceivers[0].Ch <- &batch.Batch{}
 		tc.proc.Reg.MergeReceivers[0].Ch <- newBatch(t, tc.flgs, tc.types, tc.proc, Rows)
 		tc.proc.Reg.MergeReceivers[0].Ch <- newBatch(t, tc.flgs, tc.types, tc.proc, Rows)
 		tc.proc.Reg.MergeReceivers[0].Ch <- newBatch(t, tc.flgs, tc.types, tc.proc, Rows)
 		tc.proc.Reg.MergeReceivers[0].Ch <- nil
+
 		tc.proc.Reg.MergeReceivers[1].Ch <- newBatch(t, tc.flgs, tc.types, tc.proc, Rows)
 		tc.proc.Reg.MergeReceivers[1].Ch <- &batch.Batch{}
 		tc.proc.Reg.MergeReceivers[1].Ch <- nil
+
 		for {
 			if ok, err := Call(tc.proc, tc.arg); ok || err != nil {
 				break

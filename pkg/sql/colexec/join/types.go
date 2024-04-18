@@ -60,6 +60,13 @@ type Container struct {
 	vecs []evalVector
 }
 
+type Argument struct {
+	ctr        *Container
+	IsPreBuild bool // hashtable is pre-build
+	Result     []ResultPos
+	Conditions [][]Condition
+}
+
 type ResultPos struct {
 	Rel int32
 	Pos int32
@@ -68,11 +75,4 @@ type ResultPos struct {
 type Condition struct {
 	Scale int32
 	Expr  *plan.Expr
-}
-
-type Argument struct {
-	ctr        *Container
-	IsPreBuild bool // hashtable is pre-build
-	Result     []ResultPos
-	Conditions [][]Condition
 }
