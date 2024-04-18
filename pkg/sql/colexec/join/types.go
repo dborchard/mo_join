@@ -49,7 +49,6 @@ type Container struct {
 	inserted      []uint8
 	zInserted     []uint8
 	strHashStates [][3]uint64
-	strHashMap    *hashtable.StringHashMap
 
 	poses []int32 // pos of vectors need to be copied
 
@@ -58,11 +57,16 @@ type Container struct {
 	bat *batch.Batch
 
 	vecs []evalVector
+
+	// build phase
+	strHashMap *hashtable.StringHashMap
 }
 
 type Argument struct {
 	ctr        *Container
 	IsPreBuild bool // hashtable is pre-build
+
+	// received from USER
 	Result     []ResultPos
 	Conditions [][]Condition
 }

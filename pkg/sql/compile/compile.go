@@ -1,8 +1,8 @@
 package compile
 
 import (
-	"github.com/gogo/protobuf/test/merge"
 	"mo_join/pkg/sql/colexec/connector"
+	"mo_join/pkg/sql/colexec/merge"
 	"mo_join/pkg/sql/plan"
 	"mo_join/pkg/vm"
 	"mo_join/pkg/vm/mheap"
@@ -18,12 +18,11 @@ func (c *Compile) compileJoin(n *plan.Node, ss []*Scope, children []*Scope, join
 			DispatchAll: true,
 		}
 		{ // build merge scope for children
-			chp.Proc = process.NewFromProc(mheap.New(c.proc.Mp.Gm), c.proc, len(children))
+			chp.Proc = process.NewFromProc(mheap.New(), c.proc, len(children))
 			for j := range children {
 				children[j].Instructions = append(children[j].Instructions, vm.Instruction{
 					Op: vm.Connector,
 					Arg: &connector.Argument{
-						Mmu: chp.Proc.Mp.Gm,
 						Reg: chp.Proc.Reg.MergeReceivers[j],
 					},
 				})
@@ -37,7 +36,7 @@ func (c *Compile) compileJoin(n *plan.Node, ss []*Scope, children []*Scope, join
 			Magic:     Remote,
 			PreScopes: []*Scope{ss[i], chp},
 		}
-		rs[i].Proc = process.NewFromProc(mheap.New(c.proc.Mp.Gm), c.proc, 2)
+		rs[i].Proc = process.NewFromProc(mheap.New(), c.proc, 2)
 		ss[i].Instructions = append(ss[i].Instructions, vm.Instruction{
 			Op: vm.Connector,
 			Arg: &connector.Argument{
@@ -54,12 +53,7 @@ func (c *Compile) compileJoin(n *plan.Node, ss []*Scope, children []*Scope, join
 	switch joinTyp {
 	case plan.Node_INNER:
 		if len(n.OnList) == 0 {
-			for i := range rs {
-				rs[i].Instructions = append(rs[i].Instructions, vm.Instruction{
-					Op:  vm.Product,
-					Arg: constructProduct(n, c.proc),
-				})
-			}
+
 		} else {
 			for i := range rs {
 				rs[i].Instructions = append(rs[i].Instructions, vm.Instruction{

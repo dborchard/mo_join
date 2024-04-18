@@ -3,6 +3,7 @@ package compile
 import (
 	"mo_join/pkg/sql/plan"
 	"mo_join/pkg/vm"
+	"mo_join/pkg/vm/engine"
 	"mo_join/pkg/vm/process"
 	"mo_join/pkg/z/container/batch"
 )
@@ -53,4 +54,29 @@ type Scope struct {
 	Proc *process.Process
 
 	Reg *process.WaitRegister
+}
+
+// type of scope
+const (
+	Merge = iota
+	Normal
+	Remote
+	Parallel
+	CreateDatabase
+	CreateTable
+	CreateIndex
+	DropDatabase
+	DropTable
+	DropIndex
+	Deletion
+)
+
+// Source contains information of a relation which will be used in execution,
+type Source struct {
+	IsMerge      bool
+	SchemaName   string
+	RelationName string
+	RefCounts    []uint64
+	Attributes   []string
+	R            engine.Reader
 }
