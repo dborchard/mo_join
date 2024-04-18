@@ -23,12 +23,3 @@ func (ht *StringHashMap) Init() {
 	ht.maxElemCnt = kInitialCellCnt * kLoadFactorNumerator / kLoadFactorDenominator
 	ht.cells = make([]StringHashMapCell, kInitialCellCnt)
 }
-
-func (ht *StringHashMap) FindStringBatch(states [][3]uint64, keys [][]byte, values []uint64) {
-	AesBytesBatchGenHashStates(&keys[0], &states[0], len(keys))
-
-	for i := range keys {
-		cell := ht.findCell(&states[i])
-		values[i] = cell.Mapped
-	}
-}

@@ -39,7 +39,12 @@ type evalVector struct {
 }
 
 type Container struct {
-	flg       bool // incicates if addition columns need to be copied
+	// indicates if addition columns need to be copied
+	flg bool
+
+	// projection
+	vecs []evalVector
+
 	state     int
 	rows      uint64
 	hashes    []uint64
@@ -48,7 +53,6 @@ type Container struct {
 	poses     []int32 // pos of vectors need to be copied
 	sels      [][]int64
 	bat       *batch.Batch
-	vecs      []evalVector
 
 	// build phase
 	strHashMap    *hashtable.StringHashMap
