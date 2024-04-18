@@ -96,8 +96,8 @@ func Call(proc *process.Process, arg interface{}) (bool, error) {
 	}
 }
 
-func (ctr *Container) build(ap *Argument, proc *process.Process) error {
-	if ap.IsPreBuild {
+func (ctr *Container) build(arg *Argument, proc *process.Process) error {
+	if arg.IsPreBuild {
 		bat := <-proc.Reg.MergeReceivers[1].Ch
 		ctr.bat = bat
 		ctr.strHashMap = bat.Ht.(*hashtable.StringHashMap)
@@ -118,7 +118,7 @@ func (ctr *Container) build(ap *Argument, proc *process.Process) error {
 				ctr.bat.Vecs[pos] = vector.New(bat.Vecs[pos].Typ)
 			}
 		}
-		for i, cond := range ap.Conditions[1] {
+		for i, cond := range arg.Conditions[1] {
 			vec, err := colexec.EvalExpr(bat, proc, cond.Expr)
 			if err != nil {
 				for j := 0; j < i; j++ {
@@ -144,7 +144,7 @@ func (ctr *Container) build(ap *Argument, proc *process.Process) error {
 				n = UnitLimit
 			}
 			copy(ctr.zValues[:n], OneInt64s[:n])
-			for j := range ap.Conditions[1] {
+			for j := range arg.Conditions[1] {
 				vec := ctr.vecs[j].vec
 				switch typLen := vec.Typ.Oid.FixedLength(); typLen {
 				case 1:
@@ -221,17 +221,17 @@ func (ctr *Container) build(ap *Argument, proc *process.Process) error {
 	}
 }
 
-func (ctr *Container) probe(bat *batch.Batch, ap *Argument, proc *process.Process) error {
+func (ctr *Container) probe(bat *batch.Batch, arg *Argument, proc *process.Process) error {
 	defer bat.Clean(proc.Mp)
-	rbat := batch.NewWithSize(len(ap.Result))
-	for i, rp := range ap.Result {
+	rbat := batch.NewWithSize(len(arg.Result))
+	for i, rp := range arg.Result {
 		if rp.Rel == 0 {
 			rbat.Vecs[i] = vector.New(bat.Vecs[rp.Pos].Typ)
 		} else {
 			rbat.Vecs[i] = vector.New(ctr.bat.Vecs[rp.Pos].Typ)
 		}
 	}
-	for i, cond := range ap.Conditions[0] {
+	for i, cond := range arg.Conditions[0] {
 		vec, err := colexec.EvalExpr(bat, proc, cond.Expr)
 		if err != nil {
 			for j := 0; j < i; j++ {
@@ -264,7 +264,7 @@ func (ctr *Container) probe(bat *batch.Batch, ap *Argument, proc *process.Proces
 			n = UnitLimit
 		}
 		copy(ctr.zValues[:n], OneInt64s[:n])
-		for j := range ap.Conditions[0] {
+		for j := range arg.Conditions[0] {
 			vec := ctr.vecs[j].vec
 			switch typLen := vec.Typ.Oid.FixedLength(); typLen {
 			case 1:
@@ -308,41 +308,23 @@ func (ctr *Container) probe(bat *batch.Batch, ap *Argument, proc *process.Proces
 			if ctr.values[k] == 0 {
 				continue
 			}
-			if ctr.flg {
-				sels := ctr.sels[ctr.values[k]-1]
-				for _, sel := range sels {
-					for j, rp := range ap.Result {
-						if rp.Rel == 0 {
-							if err := vector.UnionOne(rbat.Vecs[j], bat.Vecs[rp.Pos], int64(i+k), proc.Mp); err != nil {
-								rbat.Clean(proc.Mp)
-								return err
-							}
-						} else {
-							if err := vector.UnionOne(rbat.Vecs[j], ctr.bat.Vecs[rp.Pos], sel, proc.Mp); err != nil {
-								rbat.Clean(proc.Mp)
-								return err
-							}
-						}
+
+			sel := int64(ctr.values[k] - 1)
+			for j, rp := range arg.Result {
+				if rp.Rel == 0 {
+					if err := vector.UnionOne(rbat.Vecs[j], bat.Vecs[rp.Pos], int64(i+k), proc.Mp); err != nil {
+						rbat.Clean(proc.Mp)
+						return err
 					}
-					rbat.Zs = append(rbat.Zs, ctr.bat.Zs[sel])
-				}
-			} else {
-				sel := int64(ctr.values[k] - 1)
-				for j, rp := range ap.Result {
-					if rp.Rel == 0 {
-						if err := vector.UnionOne(rbat.Vecs[j], bat.Vecs[rp.Pos], int64(i+k), proc.Mp); err != nil {
-							rbat.Clean(proc.Mp)
-							return err
-						}
-					} else {
-						if err := vector.UnionOne(rbat.Vecs[j], ctr.bat.Vecs[rp.Pos], sel, proc.Mp); err != nil {
-							rbat.Clean(proc.Mp)
-							return err
-						}
+				} else {
+					if err := vector.UnionOne(rbat.Vecs[j], ctr.bat.Vecs[rp.Pos], sel, proc.Mp); err != nil {
+						rbat.Clean(proc.Mp)
+						return err
 					}
 				}
-				rbat.Zs = append(rbat.Zs, ctr.bat.Zs[sel])
 			}
+			rbat.Zs = append(rbat.Zs, ctr.bat.Zs[sel])
+
 		}
 	}
 	proc.Reg.InputBatch = rbat
