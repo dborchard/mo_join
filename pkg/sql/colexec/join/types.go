@@ -39,36 +39,32 @@ type evalVector struct {
 }
 
 type Container struct {
-	flg           bool // incicates if addition columns need to be copied
-	state         int
-	rows          uint64
-	keys          [][]byte
-	values        []uint64
-	zValues       []int64
-	hashes        []uint64
-	inserted      []uint8
-	zInserted     []uint8
-	strHashStates [][3]uint64
-
-	poses []int32 // pos of vectors need to be copied
-
-	sels [][]int64
-
-	bat *batch.Batch
-
-	vecs []evalVector
+	flg       bool // incicates if addition columns need to be copied
+	state     int
+	rows      uint64
+	hashes    []uint64
+	inserted  []uint8
+	zInserted []uint8
+	poses     []int32 // pos of vectors need to be copied
+	sels      [][]int64
+	bat       *batch.Batch
+	vecs      []evalVector
 
 	// build phase
-	strHashMap *hashtable.StringHashMap
+	strHashMap    *hashtable.StringHashMap
+	strHashStates [][3]uint64
+	keys          [][]byte
+	zValues       []int64
+	values        []uint64
 }
 
 type Argument struct {
 	ctr        *Container
-	IsPreBuild bool // hashtable is pre-build
+	IsPreBuild bool // hashtable is pre-built
 
 	// received from USER
-	Result     []ResultPos
-	Conditions [][]Condition
+	Result     []ResultPos   // onList, arg1 = arg2
+	Conditions [][]Condition // projections Condition[0] - R, Condition[1] - S.
 }
 
 type ResultPos struct {
