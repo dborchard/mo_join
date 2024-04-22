@@ -58,81 +58,7 @@ func Prepare(_ *process.Process, arg interface{}) error {
 
 func Call(proc *process.Process, arg interface{}) (bool, error) {
 	ap := arg.(*Argument)
-	if len(ap.Exprs) == 0 {
-		return ap.ctr.process(ap, proc)
-	}
 	return ap.ctr.processWithGroup(ap, proc)
-}
-
-func (ctr *Container) process(ap *Argument, proc *process.Process) (bool, error) {
-	bat := proc.Reg.InputBatch
-	if bat == nil {
-		if ctr.bat != nil {
-			proc.Reg.InputBatch = ctr.bat
-			ctr.bat = nil
-		}
-		return true, nil
-	}
-	defer bat.Clean(proc.Mp)
-	if len(bat.Vecs) == 0 {
-		return false, nil
-	}
-	proc.Reg.InputBatch = &batch.Batch{}
-	if len(ctr.aggVecs) == 0 {
-		ctr.aggVecs = make([]evalVector, len(ap.Aggs))
-	}
-	for i, agg := range ap.Aggs {
-		vec, err := colexec.EvalExpr(bat, proc, agg.E)
-		if err != nil {
-			for j := 0; j < i; j++ {
-				if ctr.aggVecs[j].needFree {
-					vector.Clean(ctr.aggVecs[j].vec, proc.Mp)
-				}
-			}
-			return false, err
-		}
-		ctr.aggVecs[i].vec = vec
-		ctr.aggVecs[i].needFree = true
-		for j := range bat.Vecs {
-			if bat.Vecs[j] == vec {
-				ctr.aggVecs[i].needFree = false
-				break
-			}
-		}
-	}
-	defer func() {
-		for i := range ctr.aggVecs {
-			if ctr.aggVecs[i].needFree {
-				vector.Clean(ctr.aggVecs[i].vec, proc.Mp)
-			}
-		}
-	}()
-	if ctr.bat == nil {
-		var err error
-
-		ctr.bat = batch.NewWithSize(0)
-		ctr.bat.Zs = []int64{0}
-		ctr.bat.Rs = make([]ring.Ring, len(ap.Aggs))
-		for i, agg := range ap.Aggs {
-			if ctr.bat.Rs[i], err = aggregate.New(agg.Op, agg.Dist, ctr.aggVecs[i].vec.Typ); err != nil {
-				return false, err
-			}
-		}
-		for _, r := range ctr.bat.Rs {
-			if err := r.Grow(proc.Mp); err != nil {
-				ctr.bat.Clean(proc.Mp)
-				return false, err
-			}
-		}
-	}
-	if len(bat.Zs) == 0 {
-		return false, nil
-	}
-	if err := ctr.processH0(bat, ap, proc); err != nil {
-		ctr.bat.Clean(proc.Mp)
-		return false, err
-	}
-	return false, nil
 }
 
 func (ctr *Container) processWithGroup(ap *Argument, proc *process.Process) (bool, error) {
@@ -144,14 +70,8 @@ func (ctr *Container) processWithGroup(ap *Argument, proc *process.Process) (boo
 			switch ctr.typ {
 			case H8:
 				ctr.bat.Ht = ctr.intHashMap
-			case H24:
-				ctr.bat.Ht = ctr.strHashMap
-			case H32:
-				ctr.bat.Ht = ctr.strHashMap
-			case H40:
-				ctr.bat.Ht = ctr.strHashMap
 			default:
-				ctr.bat.Ht = ctr.strHashMap
+				panic("not implemented")
 			}
 			proc.Reg.InputBatch = ctr.bat
 			ctr.bat = nil
@@ -246,38 +166,20 @@ func (ctr *Container) processWithGroup(ap *Argument, proc *process.Process) (boo
 		ctr.strHashStates = make([][3]uint64, UnitLimit)
 		ctr.values = make([]uint64, UnitLimit)
 		ctr.intHashMap = &hashtable.Int64HashMap{}
-		ctr.strHashMap = &hashtable.StringHashMap{}
 		switch {
 		case size <= 8:
 			ctr.typ = H8
 			ctr.h8.keys = make([]uint64, UnitLimit)
 			ctr.h8.zKeys = make([]uint64, UnitLimit)
 			ctr.intHashMap.Init()
-		case size <= 24:
-			ctr.typ = H24
-			ctr.h24.keys = make([][3]uint64, UnitLimit)
-			ctr.h24.zKeys = make([][3]uint64, UnitLimit)
-			ctr.strHashMap.Init()
-		case size <= 32:
-			ctr.typ = H32
-			ctr.h32.keys = make([][4]uint64, UnitLimit)
-			ctr.h32.zKeys = make([][4]uint64, UnitLimit)
-			ctr.strHashMap.Init()
-		case size <= 40:
-			ctr.typ = H40
-			ctr.h40.keys = make([][5]uint64, UnitLimit)
-			ctr.h40.zKeys = make([][5]uint64, UnitLimit)
-			ctr.strHashMap.Init()
-		default:
-			ctr.typ = HStr
-			ctr.hstr.keys = make([][]byte, UnitLimit)
-			ctr.strHashMap.Init()
 		}
 	}
 	switch ctr.typ {
 	//TODO: handling only H8
 	case H8:
 		err = ctr.processH8(bat, ap, proc)
+	default:
+		panic("not implemented")
 	}
 	if err != nil {
 		ctr.bat.Clean(proc.Mp)
@@ -285,16 +187,6 @@ func (ctr *Container) processWithGroup(ap *Argument, proc *process.Process) (boo
 		return false, err
 	}
 	return false, err
-}
-
-func (ctr *Container) processH0(bat *batch.Batch, ap *Argument, proc *process.Process) error {
-	for _, z := range bat.Zs {
-		ctr.bat.Zs[0] += z
-	}
-	for i, r := range ctr.bat.Rs {
-		r.BulkFill(0, bat.Zs, ctr.aggVecs[i].vec)
-	}
-	return nil
 }
 
 func (ctr *Container) processH8(bat *batch.Batch, ap *Argument, proc *process.Process) error {
@@ -311,16 +203,6 @@ func (ctr *Container) processH8(bat *batch.Batch, ap *Argument, proc *process.Pr
 			switch typLen := vec.Typ.Oid.FixedLength(); typLen {
 			case 1:
 				fillGroup[uint8](ctr, vec, ctr.h8.keys, n, 1, i)
-			case 2:
-				fillGroup[uint16](ctr, vec, ctr.h8.keys, n, 2, i)
-			case 4:
-				fillGroup[uint32](ctr, vec, ctr.h8.keys, n, 4, i)
-			case 8:
-				fillGroup[uint64](ctr, vec, ctr.h8.keys, n, 8, i)
-			case -8:
-				fillGroup[uint64](ctr, vec, ctr.h8.keys, n, 8, i)
-			default:
-				fillStringGroup(ctr, vec, ctr.h8.keys, n, 8, i)
 			}
 		}
 		ctr.hashes[0] = 0
@@ -390,29 +272,4 @@ func NumericAddScalar[T constraints.Integer | constraints.Float](x T, ys, rs []T
 		rs[i] = x + y
 	}
 	return rs
-}
-
-func fillStringGroup[T any](ctr *Container, vec *vector.Vector, keys []T, n int, sz uint32, start int) {
-	vs := vec.Col.(*types.Bytes)
-	vData := vs.Data
-	vOff := vs.Offsets
-	vLen := vs.Lengths
-	if !nulls.Any(vec.Nsp) {
-		for i := 0; i < n; i++ {
-			*(*int8)(unsafe.Add(unsafe.Pointer(&keys[i]), ctr.keyOffs[i])) = 0
-			copy(unsafe.Slice((*byte)(unsafe.Pointer(&keys[i])), sz)[ctr.keyOffs[i]+1:], vData[vOff[i+start]:vOff[i+start]+vLen[i+start]])
-			ctr.keyOffs[i] += vLen[i+start] + 1
-		}
-	} else {
-		for i := 0; i < n; i++ {
-			if vec.Nsp.Np.Contains(uint64(i + start)) {
-				*(*int8)(unsafe.Add(unsafe.Pointer(&keys[i]), ctr.keyOffs[i])) = 1
-				ctr.keyOffs[i]++
-			} else {
-				*(*int8)(unsafe.Add(unsafe.Pointer(&keys[i]), ctr.keyOffs[i])) = 0
-				copy(unsafe.Slice((*byte)(unsafe.Pointer(&keys[i])), sz)[ctr.keyOffs[i]+1:], vData[vOff[i+start]:vOff[i+start]+vLen[i+start]])
-				ctr.keyOffs[i] += vLen[i+start] + 1
-			}
-		}
-	}
 }

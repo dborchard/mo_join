@@ -50,7 +50,6 @@ type Container struct {
 	strHashStates [][3]uint64
 	values        []uint64
 	intHashMap    *hashtable.Int64HashMap
-	strHashMap    *hashtable.StringHashMap
 
 	aggVecs   []evalVector
 	groupVecs []evalVector
