@@ -1,5 +1,9 @@
 package plan
 
+import (
+	proto "github.com/gogo/protobuf/proto"
+)
+
 type isExpr_Expr interface {
 	isExpr_Expr()
 	MarshalTo([]byte) (int, error)
@@ -37,6 +41,12 @@ type Expr struct {
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
 }
+
+func (m *Expr) Reset() { *m = Expr{} }
+
+func (*Expr) ProtoMessage() {}
+
+func (m *Expr) String() string { return proto.CompactTextString(m) }
 
 type Expr_Col struct {
 	Col *ColRef `protobuf:"bytes,7,opt,name=col,proto3,oneof"`

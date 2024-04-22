@@ -183,3 +183,20 @@ func Dup(v *Vector, m *mheap.Mheap) (*Vector, error) {
 	}
 	return nil, fmt.Errorf("unsupport type %v", v.Typ)
 }
+
+func SetLength(v *Vector, n int) {
+	switch v.Typ.Oid {
+	case types.T_int8:
+		v.Data = v.Data[:n*1]
+		setLengthFixed[int8](v, n)
+	default:
+		panic(fmt.Sprintf("unexpect type %s for function vector.SetLength", v.Typ))
+	}
+}
+
+func setLengthFixed[T any](v *Vector, n int) {
+	vs := v.Col.([]T)
+	m := len(vs)
+	v.Col = vs[:n]
+	nulls.RemoveRange(v.Nsp, uint64(n), uint64(m))
+}

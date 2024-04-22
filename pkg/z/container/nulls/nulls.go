@@ -31,3 +31,11 @@ func Any(n *Nulls) bool {
 	}
 	return !n.Np.Any()
 }
+
+func RemoveRange(n *Nulls, start, end uint64) {
+	if n.Np != nil {
+		for i := start; i < end; i++ {
+			_, _ = n.Np.Remove(i)
+		}
+	}
+}
